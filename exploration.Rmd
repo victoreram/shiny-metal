@@ -1,0 +1,292 @@
+```{r}
+library(tidyverse)
+library(shiny)
+```
+```{r}
+df <- read.csv('Data/albums.csv', stringsAsFactors = F)
+df <- df %>% 
+  filter(Number.of.reviews >= 1, !str_detect(Band, '\\|')) # set a minimum of 1 review; no splits (splits are when Band = band_a | band_b)
+```
+```{r}
+# split the genres by early and later
+df <- df %>% mutate(genre_early = trimws(str_replace_all(Genre,'\\(early.*', '')),
+                    genre_early = case_when(str_sub(genre_early, start=-5) == '(mid)' ~ str_extract(genre_early, '.+?(?=,)'),
+                                            TRUE ~ genre_early),
+              genre_later = case_when(str_sub(Genre, start=-5) == '(mid)' ~ genre_early,
+                                      # if (early, later), (early; later), (early & later), (early/later) is found
+                                      str_detect(Genre, '\\(early(,|;|\\&) later\\)') ~ genre_early,
+                                      # between (mid) and (later)
+                                      str_detect(Genre, '\\(mid\\)') ~ str_extract(Genre, '(?<=\\(mid\\)?, ).+?(?= \\(later\\))'),
+                                      #between ', ' and '(later)'
+                                      str_detect(Genre, '(later)') ~ str_extract(Genre, '(?<=, ).+?(?= \\(later\\))'), 
+                                      TRUE ~ Genre)
+              )
+```
+
+```{r}
+# get the root genres from the early, late genre columns
+df <- df %>% mutate(genre_early_secondary = case_when(# in between '/' and 'Metal'
+                                           # str_detect(genre_early, '/') ~ str_extract(genre_early, '(?<=[:punct:])[:alpha:](?=Metal)'),
+                                           # get the word before 'Metal'
+                                           str_detect(genre_early, 'Metalcore') ~ 'Metalcore',
+                                           str_detect(genre_early, 'Metal') ~ str_extract(genre_early, '\\w+(?=(\\-|\\s)+Metal)'),
+                                           str_detect(genre_early, 'NWOBHM') ~ 'NWOBHM',
+                                           str_detect(genre_early, 'Rock') ~ 'Rock',
+                                           # get the word containing -core
+                                           str_detect(genre_early, 'core') ~ str_extract(genre_early, '(\\w+core)'),
+                                           TRUE ~ genre_early),
+              genre_later_secondary = case_when(# in between '/' and 'Metal'
+                                           # str_detect(genre_later, '/') ~ str_extract(genre_later, '(?<=[:punct:])[:alpha:](?=Metal)'),
+                                           str_detect(genre_early, 'Metalcore') ~ 'Metalcore',
+                                           str_detect(genre_later, 'Metal') ~ str_extract(genre_later, '\\w+(?=(\\-|\\s)+Metal)'),
+                                           str_detect(genre_later, 'NWOBHM') ~ 'NWOBHM',
+                                           str_detect(genre_later, 'Rock') ~ 'Rock',
+                                           str_detect(genre_later, 'core') ~ str_extract(genre_later, '(\\w+core)'),
+                                           TRUE ~ genre_later)
+              )# %>% filter(!str_detect(genre_early, 'Metal')) %>% distinct(genre_later_main, .keep_all=T) %>% select(genre_later, genre_later_main)
+```
+```{r}
+# narrow down genres
+df %>% distinct(genre_later_secondary, .keep_all=T) %>% select(Band, Genre, genre_early_secondary, genre_later_secondary)
+```
+```{r}
+df %>% 
+  group_by(genre_early_secondary) %>%
+  summarise(no_rows = length(genre_early_secondary)) %>% arrange(desc(no_rows))
+```
+
+```{r}
+df <- df %>% mutate(genre_early_main = case_when(str_detect(genre_early_secondary, 'Thrash|Speed|Crosso') ~ 'Thrash Metal',
+                                           str_detect(genre_early_secondary, 'NWOBHM|Heavy|Trad') ~ 'Heavy Metal',
+                                           # exclude deathcore
+                                           (str_detect(genre_early_secondary, 'Death|Extreme') & !str_detect(genre_early_secondary, 'core')) ~ 'Death Metal',
+                                           str_detect(genre_early_secondary, 'Ambient|garde|Atmos|Experi|Drone|Electro|Post') ~ 'Ambient',
+                                           str_detect(genre_early_secondary, 'Folk|Viking|Pagan|Pirate|Medieval|Celtic') ~ 'Folk Metal',
+                                           str_detect(genre_early_secondary, 'Black|Dark') ~ 'Black Metal',
+                                           str_detect(genre_early_secondary, 'Gothic|Indust|Groove|Nu|South|New') ~ 'Nu Metal',
+                                           str_detect(genre_early_secondary, 'Power|Neocla|Melod') ~ 'Power Metal',
+                                           str_detect(genre_early_secondary, 'Doom|Sludge|Stoner') ~ 'Doom Metal',
+                                           str_detect(genre_early_secondary, 'Prog|Symph|Oper|Classi') ~ 'Progressive Metal',
+                                           str_detect(genre_early_secondary, 'Rock|AOR|Alter|Glam|Punk|Grunge') ~ 'Rock',
+                                           str_detect(genre_early_secondary, 'core|Crust|grind') ~ 'Metalcore',
+                                           TRUE ~ 'Other'),
+              genre_later_main = case_when(str_detect(genre_later_secondary, 'Thrash|Speed|Crosso') ~ 'Thrash Metal',
+                                             str_detect(genre_later_secondary, 'NWOBHM|Heavy|Trad') ~ 'Heavy Metal',
+                                             # exclude deathcore
+                                             (str_detect(genre_later_secondary, 'Death|Extreme') & !str_detect(genre_later_secondary, 'core')) ~ 'Death Metal',
+                                             str_detect(genre_later_secondary, 'Ambient|garde|Atmos|Experi|Drone|Electro|Post') ~ 'Ambient',
+                                             str_detect(genre_later_secondary, 'Folk|Viking|Pagan|Pirate|Medieval|Celtic') ~ 'Folk Metal',
+                                             str_detect(genre_later_secondary, 'Black|Dark') ~ 'Black Metal',
+                                             str_detect(genre_later_secondary, 'Gothic|Indust|Groove|Nu|South|New') ~ 'Nu Metal',
+                                             str_detect(genre_later_secondary, 'Power|Neocla|Melod') ~ 'Power Metal',
+                                             str_detect(genre_later_secondary, 'Doom|Sludge|Stoner') ~ 'Doom Metal',
+                                             str_detect(genre_later_secondary, 'Prog|Symph|Oper|Classi') ~ 'Progressive Metal',
+                                             str_detect(genre_later_secondary, 'Rock|AOR|Alter|Glam|Punk|Grunge') ~ 'Rock',
+                                             str_detect(genre_later_secondary, 'core|Crust|grind') ~ 'Metalcore',
+                                             TRUE ~ 'Other')
+)# %>% filter(genre_later_main == 'Other') %>% distinct(genre_early_secondary, .keep_all=T) %>% select(Band, genre_early,genre_early_secondary,genre_early_main)
+```
+
+```{r}
+df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*', '')), # keep everything before '(early)'
+              location_early = case_when(str_sub(location_early, start=-5) == '(mid)' ~ str_extract(location_early, '.+?(?=,)'),
+                                         str_detect(location_early, '\\/') ~ str_replace_all(location_early, '\\/.*', ''),
+                                         TRUE ~ location_early)
+              ) %>% distinct(location_early)
+```
+```{r}
+
+```
+# to-do:
+# - clean locations
+# - list genre tags
+# get the tags from a genre; are they melodic, symphonic, brutal etc.?
+
+
+```{r}
+
+split_genres <- function(x){
+  unlist(str_split(x, '/|,|\\|'))
+}
+df %>% mutate(more_genres = str_split(trimws(Genre), '\\((early|mid|later)\\),')) 
+df$more_genres[1:10]
+df %>% mutate(more_genres = split_genres(more_genres))
+df$genre_split <- df$more_genres %>% lapply(split_genres)
+df %>% distinct(Band, .keep_all=T) %>% filter(Number.of.reviews > 10) %>% select(Band, Genre, genre_split)
+```
+
+```{r}
+df %>% arrange(Release.date)
+```
+
+```{r}
+df %>% filter(Number.of.reviews > 10) %>% arrange(desc(Average.rating))
+```
+```{r}
+library(datetime)
+df <- df %>% mutate(Release.date = as.date(Release.date)) %>% filter(!is.na(Release.date))
+```
+```{r}
+unique(df$Genre)[1:50]
+```
+
+To do:
+- encapsulate genres into select few (Drone, Sludge, Doom -> Doom;)
+- add "Metal" if genre doesn't include metal
+- clean locations
+
+```{r}
+df <- df %>% 
+    mutate(Genres = str_split(
+      str_replace_all(Genre, 
+                      '\\((early|mid|later)\\)', 
+                      ''
+                      ), 
+      '/|,|\\|'
+      )
+      )
+
+#df %>% select(Band, Genre, Genres) %>% distinct(Genre)
+  # mutate(Genre = case_when(!(str_detect(Genre, 'Metal')) ~ paste0(Genre, ' Metal'),
+  #                          TRUE ~ Genre))
+
+#df %>% mutate(Genre_main = case_when())
+```
+```{r}
+df %>% 
+  filter(Number.of.reviews > 8) %>%
+  select(Band, Genre, Genres) %>% 
+  filter(str_detect(Genre,'(later)')) %>% 
+  distinct(Band, .keep_all=T)
+```
+```{r}
+(df$Genre %>% unique())[1:50]
+```
+```{r}
+df %>% pull(Genre) %>% unique()
+```
+```{r}
+df %>% filter(str_detect(Genre, '(later)')) %>% head(150) %>% pull(Genre) %>% unique() 
+```
+
+```{r}
+# to-do: put genres into early, late columns
+
+#df <- df %>% filter(Number.of.reviews >= 1, !str_detect(Band, '\\|'))
+df <- df %>% mutate(genre_early = trimws(str_replace_all(Genre,'\\(early.*', '')),
+                    genre_early = case_when(str_sub(genre_early, start=-5) == '(mid)' ~ str_extract(genre_early, '.+?(?=,)'),
+                                            TRUE ~ genre_early),
+              genre_later = case_when(str_sub(Genre, start=-5) == '(mid)' ~ genre_early,
+                                      # if (early, later), (early; later), (early & later), (early/later) is found
+                                      str_detect(Genre, '\\(early(,|;|\\&) later\\)') ~ genre_early,
+                                      # between (mid) and (later)
+                                      str_detect(Genre, '\\(mid\\)') ~ str_extract(Genre, '(?<=\\(mid\\)?, ).+?(?= \\(later\\))'),
+                                      #between ', ' and '(later)'
+                                      str_detect(Genre, '(later)') ~ str_extract(Genre, '(?<=, ).+?(?= \\(later\\))'), 
+                                      TRUE ~ Genre)
+              )
+# df %>% distinct(Band, .keep_all=T) %>% filter(str_detect(Genre, '\\(mid\\)'), !str_detect(Band, '\\|')) %>% head(50) %>% select(Band, Genre, genre_early, genre_later)
+df %>% distinct(Band, .keep_all=T) %>% select(Band, Genre, genre_early, genre_later)# %>% tail(100)
+```
+```{r}
+df %>% mutate(genre_early_main = case_when(# in between '/' and 'Metal'
+                                           # str_detect(genre_early, '/') ~ str_extract(genre_early, '(?<=[:punct:])[:alpha:](?=Metal)'),
+                                           # get the word before 'Metal'
+                                           str_detect(genre_early, 'Metal') ~ str_extract(genre_early, '\\w+(?=(\\-|\\s)+Metal)'),
+                                           str_detect(genre_early, 'NWOBHM') ~ 'NWOBHM',
+                                           str_detect(genre_early, 'Rock') ~ 'Rock',
+                                           str_detect(genre_early, 'core') ~ str_extract(genre_early, '(\\w+core)'),
+                                           TRUE ~ genre_early),
+              genre_later_main = case_when(# in between '/' and 'Metal'
+                                           # str_detect(genre_later, '/') ~ str_extract(genre_later, '(?<=[:punct:])[:alpha:](?=Metal)'),
+                                           # get the word before 'Metal'
+                                           str_detect(genre_later, 'Metal') ~ str_extract(genre_later, '\\w+(?=(\\-|\\s)+Metal)'),
+                                           str_detect(genre_later, 'NWOBHM') ~ 'NWOBHM',
+                                           str_detect(genre_later, 'Rock') ~ 'Rock',
+                                           str_detect(genre_later, 'core') ~ str_extract(genre_later, '(\\w+core)'),
+                                           TRUE ~ genre_later)
+              ) %>% 
+  
+  #filter(!str_detect(genre_early, 'Metal')) %>% 
+  distinct(genre_later_main, .keep_all=T) %>% 
+  select(genre_later, genre_later_main)
+```
+
+```{r}
+nrow(df)
+```
+
+
+```{r}
+df %>% filter(str_detect(Genre, '(mid)'), Number.of.reviews>5)
+```
+
+
+```{r}
+split_genres <- function(x){
+  unlist(str_split(x, '/|,|\\|'))
+}
+df <- df %>% mutate(more_genres = str_split(trimws(Genre), '\\((early|mid|later)\\),')) 
+df$more_genres[1:10]
+df %>% mutate(more_genres = split_genres(more_genres))
+df$genre_split <- df$more_genres %>% lapply(split_genres)
+df %>% distinct(Band, .keep_all=T) %>% filter(Number.of.reviews > 10) %>% select(Band, Genre, genre_split)
+#(df$more_genres %>% unique() %>% lapply(split_genres))[1:50]
+#df$more_genres %>% unique() %>% lapply(str_split, '/') %>% lapply(unlist)
+```
+
+```{r}
+df %>% distinct(Band, .keep_all=T) %>% filter(Number.of.reviews > 10)
+```
+```{r}
+df %>% distinct(Band, .keep_all=T) %>% filter(Number.of.reviews > 5) %>% select(Band, Genre)
+```
+
+```{r}
+df %>% distinct(Band, .keep_all=T) %>% filter(Number.of.reviews > 10) %>% pull(more_genres) %>% unique()
+```
+
+
+```{r}
+df %>% pull(Genres) %>% unique()
+```
+
+
+```{r}
+df %>% 
+  filter(Number.of.reviews > 5) %>% 
+  # split at the backslash i.e. black/thrash metal -> 'black', 'thrash metal'
+  mutate(Genre = trimws(str_replace(Genre, '([:punct:]).*', ''))) %>%
+  mutate(Genre = case_when(!(str_detect(Genre, 'Metal')) ~ paste0(Genre, ' Metal'),
+                           TRUE ~ Genre)) %>% # %>% pull(Genre) %>% unique()
+  mutate(Genre_main = case_when(str_detect(Genre, 'Dark|Black') ~ 'Black Metal',
+                                str_detect(Genre, 'Heavy|Traditional|NWOBHM') ~ 'Heavy Metal',
+                                str_detect(Genre, 'Doom|Sludge|Stoner|Drone') ~ 'Doom Metal',
+                                str_detect(Genre, 'Speed|Thrash|Crossover') ~ 'Thrash Metal',
+                                str_detect(Genre, 'Groove|Industrial|Southern') ~ 'Groove Metal',
+                                str_detect(Genre, 'Brutal|Technical|Death') ~ 'Death Metal',
+                                str_detect(Genre, 'Power|Symphonic|Progressive') ~ 'Power Metal',
+                                str_detect(Genre, 'Pagan|Pirate|Folk|Viking') ~ 'Folk Metal',
+                                str_detect(Genre, 'Crust|Core|grind|Grind') ~ 'Crust/Grindcore',
+                                str_detect(Genre, 'Post|Experimental|Ambient|Avant') ~ 'Avant',
+                                str_detect(Genre, 'Metalcore|Deathcore|Hardcore') ~ 'Metalcore',
+                                str_detect(Genre, 'Rock') ~ 'Rock',
+                                str_detect(Genre, 'Goth|Nu') ~ 'Nu Metal'
+                                )
+         ) %>% filter(is.na(Genre_main)) %>% distinct(Band, Genre, Genre_main)
+
+#str_replace(unique(df$Genre)[1:25], '([:punct:]).*', '')
+#str_subset(df$Genre, '(.*/)')
+```
+```{r}
+df %>% filter(Number.of.reviews > 10) %>% mutate(Location = str_replace(Location, '\\(early\\).*', ''))
+```
+
+```{r}
+df %>% arrange(desc(Number.of.reviews))
+
+```
+```{r}
+df %>%
+```
+
