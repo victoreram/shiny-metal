@@ -46,6 +46,66 @@ df <- df %>% mutate(genre_early_secondary = case_when(# in between '/' and 'Meta
               )# %>% filter(!str_detect(genre_early, 'Metal')) %>% distinct(genre_later_main, .keep_all=T) %>% select(genre_later, genre_later_main)
 ```
 ```{r}
+df <- df %>% mutate(genre_early_main = case_when(str_detect(genre_early_secondary, 'Thrash|Speed|Crosso') ~ 'Thrash Metal',
+                                           str_detect(genre_early_secondary, 'NWOBHM|Heavy|Trad') ~ 'Heavy Metal',
+                                           # exclude deathcore
+                                           (str_detect(genre_early_secondary, 'Death|Extreme') & !str_detect(genre_early_secondary, 'core')) ~ 'Death Metal',
+                                           str_detect(genre_early_secondary, 'Ambient|garde|Atmos|Experi|Drone|Electro|Post') ~ 'Ambient',
+                                           str_detect(genre_early_secondary, 'Folk|Viking|Pagan|Pirate|Medieval|Celtic') ~ 'Folk Metal',
+                                           str_detect(genre_early_secondary, 'Black|Dark') ~ 'Black Metal',
+                                           str_detect(genre_early_secondary, 'Gothic|Indust|Groove|Nu|South|New') ~ 'Nu Metal',
+                                           str_detect(genre_early_secondary, 'Power|Neocla|Melod') ~ 'Power Metal',
+                                           str_detect(genre_early_secondary, 'Doom|Sludge|Stoner') ~ 'Doom Metal',
+                                           str_detect(genre_early_secondary, 'Prog|Symph|Oper|Classi') ~ 'Progressive Metal',
+                                           str_detect(genre_early_secondary, 'Rock|AOR|Alter|Glam|Punk|Grunge') ~ 'Rock',
+                                           str_detect(genre_early_secondary, 'core|Crust|grind') ~ 'Metalcore',
+                                           TRUE ~ 'Other'),
+              genre_later_main = case_when(str_detect(genre_later_secondary, 'Thrash|Speed|Crosso') ~ 'Thrash Metal',
+                                             str_detect(genre_later_secondary, 'NWOBHM|Heavy|Trad') ~ 'Heavy Metal',
+                                             # exclude deathcore
+                                             (str_detect(genre_later_secondary, 'Death|Extreme') & !str_detect(genre_later_secondary, 'core')) ~ 'Death Metal',
+                                             str_detect(genre_later_secondary, 'Ambient|garde|Atmos|Experi|Drone|Electro|Post') ~ 'Ambient',
+                                             str_detect(genre_later_secondary, 'Folk|Viking|Pagan|Pirate|Medieval|Celtic') ~ 'Folk Metal',
+                                             str_detect(genre_later_secondary, 'Black|Dark') ~ 'Black Metal',
+                                             str_detect(genre_later_secondary, 'Gothic|Indust|Groove|Nu|South|New') ~ 'Nu Metal',
+                                             str_detect(genre_later_secondary, 'Power|Neocla|Melod') ~ 'Power Metal',
+                                             str_detect(genre_later_secondary, 'Doom|Sludge|Stoner') ~ 'Doom Metal',
+                                             str_detect(genre_later_secondary, 'Prog|Symph|Oper|Classi') ~ 'Progressive Metal',
+                                             str_detect(genre_later_secondary, 'Rock|AOR|Alter|Glam|Punk|Grunge') ~ 'Rock',
+                                             str_detect(genre_later_secondary, 'core|Crust|grind') ~ 'Metalcore',
+                                             TRUE ~ 'Other')
+)# %>% filter(genre_later_main == 'Other') %>% distinct(genre_early_secondary, .keep_all=T) %>% select(Band, genre_early,genre_early_secondary,genre_early_main)
+```
+
+
+```{r}
+# get the earliest location of a band
+df <- df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*', '')), # keep everything before '(early)'
+              location_early = case_when(str_sub(location_early, start=-5) == '(mid)' ~ str_extract(location_early, '.+?(?=,)'),
+                                         str_detect(location_early, '\\/') ~ str_replace_all(location_early, '\\/.*', ''),
+                                         TRUE ~ location_early)
+)
+```
+
+```{r}
+df <- df %>% 
+  #select(genre_early_main, genre_early) %>% 
+  #distinct(genre_early, .keep_all=T) %>% 
+  mutate(genre_early_stripped = trimws(str_remove_all(str_replace_all(str_remove(genre_early, genre_early_main), '\\/|,', ' '), 'Metal')),
+         genre_later_stripped = trimws(str_remove_all(str_replace_all(str_remove(genre_later, genre_later_main), '\\/|,', ' '), 'Metal')))# %>%distinct(genre_early_stripped, .keep_all=T)
+```
+```{r}
+```
+df <- select(-genre_tags)
+df
+```{r}
+df %>% select(-genre_tags) %>% write_csv('albums_cleaned.csv')
+vapply(df$genre_tags, paste, collapse = ", ")
+```
+
+
+
+```{r}
 # narrow down genres
 df %>% distinct(genre_later_secondary, .keep_all=T) %>% select(Band, Genre, genre_early_secondary, genre_later_secondary)
 ```
@@ -86,13 +146,48 @@ df <- df %>% mutate(genre_early_main = case_when(str_detect(genre_early_secondar
                                              TRUE ~ 'Other')
 )# %>% filter(genre_later_main == 'Other') %>% distinct(genre_early_secondary, .keep_all=T) %>% select(Band, genre_early,genre_early_secondary,genre_early_main)
 ```
-
 ```{r}
-df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*', '')), # keep everything before '(early)'
+df <- df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*', '')), # keep everything before '(early)'
               location_early = case_when(str_sub(location_early, start=-5) == '(mid)' ~ str_extract(location_early, '.+?(?=,)'),
                                          str_detect(location_early, '\\/') ~ str_replace_all(location_early, '\\/.*', ''),
                                          TRUE ~ location_early)
-              ) %>% distinct(location_early)
+)
+df %>% distinct(genre_early_secondary)
+df %>% distinct(genre_early)
+# get genre tags
+df <- df %>% 
+  select(genre_early_main, genre_early) %>% 
+  distinct(genre_early, .keep_all=T) %>% 
+  mutate(genre_early_stripped = trimws(str_remove_all(str_replace_all(str_remove(genre_early, genre_early_main), '\\/|,', ' '), 'Metal')),
+         genre_tags = str_split(genre_early_stripped, '. ')) %>%
+  distinct(genre_early_stripped, .keep_all=T)
+```
+
+```{r}
+# todo: clean later
+# get everything AFTER the last instance of '), ' and BEFORE (current) or (present) or (now)
+df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*', '')), # keep everything before '(early)'
+              location_early = case_when(str_sub(location_early, start=-5) == '(mid)' ~ str_extract(location_early, '.+?(?=,)'),
+                                         str_detect(location_early, '\\/') ~ str_replace_all(location_early, '\\/.*', ''),
+                                         TRUE ~ location_early),
+              #location_later = str_replace_all(Location, location_early, ''),
+              location_later = case_when(
+                        #str_detect(Location, '\\(now\\)') ~ str_extract(Location, '(?<=\\), ).+?(?= \\(now\\))'),
+                        #match all chars until '), ', anchor to end of string with $ #match all chars until '), ', anchor to end of string with $
+                        #str_detect(Location, '\\(now\\)') ~ str_extract(Location, '(\\),.*)$'),
+                        #str_detect(Location, '\\(now\\)') ~ str_extract(Location, '\\), (?!\\), ).*'), 
+                        str_sub(Location, start=-5) == '(mid)' ~ location_early, # keep
+                        # if (early, later), (early; later), (early & later), (early/later) is found
+                        str_detect(Location, '\\(early(,|;|\\&) later\\)') ~ location_early, # keep
+                        # between (mid) and (later)
+                        str_detect(Location, '\\(mid\\)') ~ str_extract(Location, '(?<=\\(mid\\)?, ).+?(?= \\(later\\))'),
+                        str_detect(Location, '\\/') ~ str_extract(Location, '(?<=\\/).*$'),
+                        # between ', ' and '(later)', get 
+                        str_detect(Location, '(later)') ~ str_extract(Location, '(?<=, ).+?(?= \\(later\\))'), 
+                        TRUE ~ Location)
+              ) %>% filter(location_early!=location_later) %>% distinct(Location, location_early, location_later)
+
+df %>% filter(str_detect(Location, '\\(now|current|present\\)')) %>% select(Band, Location) %>% distinct(Location, .keep_all=T)
 ```
 ```{r}
 

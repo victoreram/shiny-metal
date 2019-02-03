@@ -1,0 +1,67 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+```{r}
+library(tidyverse)
+```
+
+```{r}
+df <- read.csv('albums_cleaned.csv', stringsAsFactors = FALSE)
+head(df)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+names(df)
+```
+```{r}
+library(lubridate)
+df_year_month <- df %>% mutate(release_year = str_sub(Release.date,1,4), 
+              release_year_month = str_sub(Release.date,1,7)) %>% 
+  group_by(release_year_month) %>% 
+  count(genre_early_main)
+
+df_year <- df %>% mutate(release_year = str_sub(Release.date,1,4), 
+              release_year_month = str_sub(Release.date,1,7)) %>% 
+  group_by(release_year) %>% 
+  count(genre_early_main) %>%
+  mutate(percent = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(release_year = as.numeric(release_year))
+  #summarize(a = count(genre_early_main)/total)# %>%
+  #count(genre_early_main)
+
+df %>%  mutate(release_year = str_sub(Release.date,1,4)) %>% rowsum('release_year')
+df_year <- df_year %>% group_by(release_year) %>% mutate(percent = n/sum(n))
+
+df_year
+```
+```{r}
+
+```
+
+
+
+
+
+```{r fig.width=5}
+df_year <- df_year %>% ungroup() %>% mutate(release_year = as.numeric(release_year)) %>% filter(release_year < 2019, release_year >= 1969)
+df_year <- df_year %>% mutate(genre_early_main = fct_reorder(genre_early_main, release_year))
+ggplot(df_year, aes(x=release_year, y=percent, fill=genre_early_main)) + 
+    geom_area(position = 'stack')
+```
+
+```{r}
+df %>% filter(Release.date > '2019')
+```
+
