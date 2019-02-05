@@ -8,6 +8,7 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 ```{r}
 library(tidyverse)
+library(plotly)
 ```
 
 ```{r}
@@ -50,7 +51,7 @@ levels(df_year$genre_early_main)
 ```
 
 ```{r fig.height=5, fig.width=8}
-ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_main))) + 
+g1 <- ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_main))) + 
     geom_area(position = 'stack') + 
   labs(x="Release Year", 
        y = "Percent of Releases", 
@@ -67,7 +68,7 @@ ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_main))) 
                                "Power Metal" = "#f72bad", #pink
                                "Heavy Metal" = "#1d00fa", #blue
                                "Metalcore" = "#ee6917",
-                               "Nu Metal" = "#126d08",
+                               "Nu Metal" = "#ffd60a",
                                "Progressive Metal" = "#0adeff", #light blue
                                "Folk Metal" = "#b120d9" #purple
                                )
@@ -75,9 +76,47 @@ ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_main))) 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
   panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
-
+ggplotly(g1)
 ```
 
+```{r fig.height=5, fig.width=5}
+g2 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
+  mutate(release_year = as.numeric(str_sub(Release.date, 1, 4))) %>% 
+  filter(Number.of.reviews >= 5) %>%
+  ggplot() + 
+  geom_point(aes(x = Number.of.reviews, 
+                 y = Average.rating,
+                 color = genre_early_main), 
+             position = position_jitter(width = 0.5, height = 0.5),
+             size = 0.7) + 
+  labs(x="Number of Reviews", 
+       y = "Rating", 
+       color = "Main Genre",
+       title = "Metal Releases By Rating and Number of Reviews") + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                "Death Metal" = "#8f0000", #dark red
+                               "Thrash Metal" = "#7cf000", #light green
+                               "Doom Metal" = "#7e3f0c", #brown
+                               "Ambient" = "#7d7d7d", #gray
+                               "Power Metal" = "#f72bad", #pink
+                               "Heavy Metal" = "#1d00fa", #blue
+                               "Metalcore" = "#ee6917",
+                               "Nu Metal" = "#ffd60a",
+                               "Progressive Metal" = "#0adeff", #light blue
+                               "Folk Metal" = "#b120d9" #purple
+                               )
+                     ) + 
+    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
+  scale_x_continuous(limits=c(5, 45), expand = c(0, 0)) + 
+  theme_light() + 
+  theme(#panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(),
+        #panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+  #geom_jitter()
+
+ggplotly(g2)
+```
 
 
 
