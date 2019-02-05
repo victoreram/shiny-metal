@@ -27,7 +27,8 @@ names(df)
 ```
 ```{r}
 library(lubridate)
-
+df <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>% 
+  mutate(release_year = as.numeric(str_sub(Release.date,1,4)))
 
 df_year <- df %>% 
   filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
@@ -78,17 +79,31 @@ g1 <- ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_ma
 
 ggplotly(g1)
 ```
+```{r}
+names(df)
+```
 
 ```{r fig.height=5, fig.width=5}
 g2 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
-  mutate(release_year = as.numeric(str_sub(Release.date, 1, 4))) %>% 
+  mutate(release_year = as.numeric(str_sub(Release.date, 1, 4)),
+         Average.rating = round(Average.rating, 1)) %>% 
   filter(Number.of.reviews >= 5) %>%
   ggplot() + 
   geom_point(aes(x = Number.of.reviews, 
                  y = Average.rating,
-                 color = genre_early_main), 
+                 color = genre_early_main,
+                 text=sprintf("Band: %s
+                              Album: %s
+                              Release Date: %s
+                              Genre: %s
+                              Rating: %s
+                              Number of Reviews: %s
+                              Tags: %s", 
+                              Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)), 
              position = position_jitter(width = 0.5, height = 0.5),
-             size = 0.7) + 
+             size = 0.4,
+             alpha = 0.6
+             ) + 
   labs(x="Number of Reviews", 
        y = "Rating", 
        color = "Main Genre",
@@ -114,8 +129,14 @@ g2 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
         #panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
   #geom_jitter()
+ggplotly(g2, tooltip="text")
 
-ggplotly(g2)
+```
+```{r}
+df
+df %>% 
+  plot_ly(x = ~Number.of.reviews, y = ~Average.rating) %>%
+  add_markers()
 ```
 
 
