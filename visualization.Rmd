@@ -50,9 +50,20 @@ df_year %>% arrange(release_year)
 ```{r}
 levels(df_year$genre_early_main)
 ```
+```{r}
+df_year %>% h
+```
+
 
 ```{r fig.height=5, fig.width=8}
-g1 <- ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_main))) + 
+g1 <- ggplot(df_year, aes(x=release_year, 
+                          y=percent, 
+                          # text = sprintf("Genre: %s
+                          #                Number of Releases: %s,
+                          #                Percent: %s",
+                          #                genre_early_main, n, scales::percent(percent)),
+                          fill=fct_rev(genre_early_main)
+                          )) + 
     geom_area(position = 'stack') + 
   labs(x="Release Year", 
        y = "Percent of Releases", 
@@ -76,8 +87,10 @@ g1 <- ggplot(df_year, aes(x=release_year, y=percent, fill=fct_rev(genre_early_ma
                      ) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
   panel.background = element_blank(), axis.line = element_line(colour = "black"))
-
-ggplotly(g1)
+g1
+ggplotly(g1, 
+         tooltip = "text", 
+         width = 900, height = 600)
 ```
 ```{r}
 names(df)
@@ -130,8 +143,109 @@ g2 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
         axis.line = element_line(colour = "black"))
   #geom_jitter()
 ggplotly(g2, tooltip="text")
-
+# example query
+# https://www.metal-archives.com/search?searchString=iron+maiden&type=band_name
 ```
+```{r}
+df
+```
+
+```{r fig.height=6, fig.width=8}
+g3 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
+                    Number.of.reviews >= 5) %>%
+  mutate(Average.rating = round(Average.rating, 1),
+         release_year_month = case_when(
+           str_sub(Release.date, 6, 7)=='00' ~ paste0(str_sub(Release.date, 1, 5), '01-01'),
+           str_sub(Release.date, 9, 10)=='00' ~ paste0(str_sub(Release.date, 1, 8), '01'),
+           TRUE ~ Release.date)
+         #release_year_month = ymd(release_year_month, origin=lubridate::origin)
+         ) %>%
+  ggplot(aes(x = release_year_month, 
+                 y = Average.rating,
+                 color = genre_early_main,
+             group = Band)
+         ) + 
+  geom_line(alpha=0.1) + 
+  geom_point(aes(size = Number.of.reviews,
+                 text=sprintf("Band: %s
+                              Album: %s
+                              Release Date: %s
+                              Genre: %s
+                              Rating: %s
+                              Number of Reviews: %s
+                              Tags: %s", 
+                              Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)),
+             position = position_jitter(width = 0.25, height = 0.5),
+             alpha = 0.4
+             ) + 
+  labs(x= "Release Year", 
+       y = "Rating", 
+       color = "Main Genre",
+       size = "Number of Reviews",
+       title = "Metal Releases By Rating and Release Year") + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                "Death Metal" = "#8f0000", #dark red
+                               "Thrash Metal" = "#7cf000", #light green
+                               "Doom Metal" = "#7e3f0c", #brown
+                               "Ambient" = "#7d7d7d", #gray
+                               "Power Metal" = "#f72bad", #pink
+                               "Heavy Metal" = "#1d00fa", #blue
+                               "Metalcore" = "#ee6917",
+                               "Nu Metal" = "#ffd60a",
+                               "Progressive Metal" = "#0adeff", #light blue
+                               "Folk Metal" = "#b120d9" #purple
+                               )
+                     ) + 
+    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
+  #scale_x_continuous(limits=c(1970, 2018), expand = c(0, 0)) + 
+  scale_size_continuous(range=c(1,8)) + 
+  theme_light() + 
+  theme(#panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(),
+        #panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+  #geom_jitter()
+g3
+ggplotly(g3, tooltip="text", height = 800, width = 1200)
+
+df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
+                    Number.of.reviews >= 5) %>%
+  mutate(release_year = as.numeric(str_sub(Release.date, 1, 4)),
+         Release.date = case_when(str_sub(Release.date, 6, 7)=='00' ~ as.character(release_year),
+                                  str_sub(Release.date, 9, 10)=='00' ~ str_sub(Release.date, 1, 7),
+                                  TRUE ~ Release.date),
+         #r = lubridate::ymd(Release.date),
+         r = lubridate::ymd(Release.date, 
+                            truncated=2
+                            #origin=lubridate::origin
+                            ),
+         release_year_month = case_when(!is.na(r) ~ r,
+                                         TRUE ~ release_year)
+         # release_year_month = ymd(Release.date, 
+         #                          truncated=2,
+         #                          origin = '1965-01-01')
+         ) %>% select(Release.date, release_year_month, r)
+
+df %>% mutate(release_year_month = ymd(Release.date,
+                                       truncated=2)) %>% arrange(release_year_month) %>% select(Release.date, release_year_month)
+df %>% 
+  mutate(r = case_when(str_sub(Release.date, 6, 7) == '00' ~ as.Date(as.character(release_year), format='%Y'),
+                       TRUE ~ as.Date(Release.date, format='%Y-%m-%d')
+                       )
+              ) %>% select(Release.date, release_year, r)
+df %>% 
+  select(Release.date) %>% 
+  mutate(r = case_when(str_sub(Release.date, 6, 7)=='00' ~ paste0(str_sub(Release.date, 1, 5), '01-01'),
+                       str_sub(Release.date, 9, 10)=='00' ~ paste0(str_sub(Release.date, 1, 8), '01'),
+                       TRUE ~ Release.date
+                       ),
+         release_day = ymd(r)
+         )
+df %>% mutate(r=ymd(Release.date))
+df %>% select(Release.date) %>% arrange(Release.date)
+```
+
+
 ```{r}
 df
 df %>% 
