@@ -16,11 +16,6 @@ df <- read.csv('albums_cleaned.csv', stringsAsFactors = FALSE)
 head(df)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 
 ```{r}
 names(df)
@@ -28,19 +23,21 @@ names(df)
 ```{r}
 library(lubridate)
 df <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>% 
-  mutate(release_year = as.numeric(str_sub(Release.date,1,4)))
+  mutate(release_year = as.numeric(str_sub(Release.date,1,4)),
+         Average.rating = round(Average.rating, 1))
+
+df  
 
 df_year <- df %>% 
-  filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
-  mutate(release_year = str_sub(Release.date,1,4), 
-         release_year_month = str_sub(Release.date,1,7)) %>% 
-    mutate(release_year = as.numeric(release_year)) %>% 
   filter(!is.na(genre_early_main), genre_early_main != '', release_year >= 1970, release_year < 2019) %>%
   group_by(release_year) %>% 
   count(genre_early_main) %>%
   mutate(percent = n/sum(n)) %>% 
   ungroup() %>% 
-  mutate(genre_early_main = fct_reorder(genre_early_main, release_year))
+  mutate(genre_early_main = fct_reorder(genre_early_main, release_year)) %>% 
+  select(-n) %>%
+  tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
+  tidyr::gather(key = genre_early_main, value = percent, - release_year)
   #summarize(a = count(genre_early_main)/total)# %>%
   #count(genre_early_main)
 
@@ -50,19 +47,24 @@ df_year %>% arrange(release_year)
 ```{r}
 levels(df_year$genre_early_main)
 ```
-```{r}
-df_year %>% h
-```
+How are metal genres distributed over time?
 
 
-```{r fig.height=5, fig.width=8}
+```{r fig.height=4, fig.width=6}
+# 
+# df_year2 <- df_year %>% select(-n) %>%
+#     tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
+#     tidyr::gather(key = genre_early_main, value = percent, - release_year)# %>%
+    #arrange(release_year, genre_early_main)
+
+df_year2
 g1 <- ggplot(df_year, aes(x=release_year, 
                           y=percent, 
                           # text = sprintf("Genre: %s
                           #                Number of Releases: %s,
                           #                Percent: %s",
                           #                genre_early_main, n, scales::percent(percent)),
-                          fill=fct_rev(genre_early_main)
+                          fill=fct_rev(fct_inorder(genre_early_main))
                           )) + 
     geom_area(position = 'stack') + 
   labs(x="Release Year", 
@@ -88,8 +90,8 @@ g1 <- ggplot(df_year, aes(x=release_year,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
   panel.background = element_blank(), axis.line = element_line(colour = "black"))
 g1
-ggplotly(g1, 
-         tooltip = "text", 
+ggplotly(g1,
+         tooltip = "text",
          width = 900, height = 600)
 ```
 ```{r}
@@ -97,9 +99,7 @@ names(df)
 ```
 
 ```{r fig.height=5, fig.width=5}
-g2 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other'))) %>%
-  mutate(release_year = as.numeric(str_sub(Release.date, 1, 4)),
-         Average.rating = round(Average.rating, 1)) %>% 
+g2 <- df %>%
   filter(Number.of.reviews >= 5) %>%
   ggplot() + 
   geom_point(aes(x = Number.of.reviews, 
@@ -152,20 +152,21 @@ df
 
 ```{r fig.height=6, fig.width=8}
 g3 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
-                    Number.of.reviews >= 5) %>%
+                    Number.of.reviews >= 10,
+                    Release.type %in% c("Full-length", "EP")) %>%
   mutate(Average.rating = round(Average.rating, 1),
          release_year_month = case_when(
-           str_sub(Release.date, 6, 7)=='00' ~ paste0(str_sub(Release.date, 1, 5), '01-01'),
+           str_sub(Release.date, 6, 7)=='00' | str_length(Release.date)==4 ~ paste0(str_sub(Release.date, 1, 5), '01-01'),
            str_sub(Release.date, 9, 10)=='00' ~ paste0(str_sub(Release.date, 1, 8), '01'),
            TRUE ~ Release.date)
          #release_year_month = ymd(release_year_month, origin=lubridate::origin)
          ) %>%
-  ggplot(aes(x = release_year_month, 
+  ggplot(aes(x = release_year, 
                  y = Average.rating,
                  color = genre_early_main,
              group = Band)
          ) + 
-  geom_line(alpha=0.1) + 
+  geom_line(alpha=0.25) + 
   geom_point(aes(size = Number.of.reviews,
                  text=sprintf("Band: %s
                               Album: %s
@@ -185,7 +186,70 @@ g3 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
        title = "Metal Releases By Rating and Release Year") + 
     scale_color_manual(values = c("Black Metal" = "#000000", #black
                                 "Death Metal" = "#8f0000", #dark red
-                               "Thrash Metal" = "#7cf000", #light green
+                               "Thrash Metal" = "#3ddd03", #light green
+                               "Doom Metal" = "#7e3f0c", #brown
+                               "Ambient" = "#7d7d7d", #gray
+                               "Power Metal" = "#f72bad", #pink
+                               "Heavy Metal" = "#1d00fa", #blue
+                               "Metalcore" = "#ee6917",
+                               "Nu Metal" = "#ffd60a",
+                               "Progressive Metal" = "#0adeff", #light blue
+                               "Folk Metal" = "#b120d9" #purple
+                               )
+                     ) + 
+    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
+  scale_x_continuous(limits=c(1970, 2018), expand = c(0, 0)) + 
+  #scale_x_date() + 
+  scale_size_continuous(range=c(1,8)) + 
+  theme_light() + 
+  theme(#panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(),
+        #panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+  #geom_jitter()
+g3
+ggplotly(g3, tooltip="text", height = 1000, width = 1400)
+
+
+```
+```{r fig.height=6, fig.width=8}
+g4 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
+                    Number.of.reviews >= 10,
+                    Release.type %in% c("Full-length", "EP")) %>%
+  mutate(Average.rating = round(Average.rating, 1),
+         release_year_month = case_when(
+           str_sub(Release.date, 6, 7)=='00' | str_length(Release.date)<5 ~ paste0(str_sub(Release.date, 1, 5), '01-01'),
+           str_sub(Release.date, 9, 10)=='00' ~ paste0(str_sub(Release.date, 1, 8), '01'),
+           TRUE ~ Release.date
+           ),
+         release_year_month = ymd(release_year_month, origin=lubridate::origin)
+         ) %>%
+  ggplot(aes(x = release_year_month, 
+                 y = Average.rating,
+                 color = genre_early_main,
+             group = Band)
+         ) + 
+  geom_line(alpha=0.25) + 
+  geom_point(aes(size = Number.of.reviews,
+                 text=sprintf("Band: %s
+                              Album: %s
+                              Release Date: %s
+                              Genre: %s
+                              Rating: %s
+                              Number of Reviews: %s
+                              Tags: %s", 
+                              Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)),
+             position = position_jitter(width = 0.25, height = 0.5),
+             alpha = 0.4
+             ) + 
+  labs(x= "Release Year", 
+       y = "Rating", 
+       color = "Main Genre",
+       size = "Number of Reviews",
+       title = "Metal Releases By Rating and Release Year") + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                "Death Metal" = "#8f0000", #dark red
+                               "Thrash Metal" = "#3ddd03", #light green
                                "Doom Metal" = "#7e3f0c", #brown
                                "Ambient" = "#7d7d7d", #gray
                                "Power Metal" = "#f72bad", #pink
@@ -205,9 +269,14 @@ g3 <- df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
         #panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
   #geom_jitter()
-g3
-ggplotly(g3, tooltip="text", height = 800, width = 1200)
+g4
+ggplotly(g4, tooltip="text", height = 1000, width = 1400)
 
+
+```
+
+
+```{r}
 df %>% filter(!(genre_early_main %in% c('Rock', 'Other')),
                     Number.of.reviews >= 5) %>%
   mutate(release_year = as.numeric(str_sub(Release.date, 1, 4)),

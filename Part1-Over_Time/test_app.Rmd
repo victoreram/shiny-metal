@@ -1,0 +1,136 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(shiny)
+library(shinydashboard)
+library(tidyverse)
+library(lubridate)
+library(plotly)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+df
+```
+
+```{r}
+
+df <- read.csv('../Data/albums.csv', stringsAsFactors = FALSE )%>% filter(!(genre_early_main %in% c("Rock", "Other")))
+
+plot_albums <- function(data) {
+  data %>%
+  ggplot() + 
+  geom_point(aes(x = Number.of.reviews, 
+                 y = Average.rating,
+                 color = genre_early_main,
+                 text=sprintf("Band: %s
+                              Album: %s
+                              Release Date: %s
+                              Genre: %s
+                              Rating: %s
+                              Number of Reviews: %s
+                              Tags: %s", 
+                              Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)), 
+             position = position_jitter(width = 0.5, height = 0.5),
+             size = 1,
+             alpha = 0.6
+             ) + 
+  labs(x="Number of Reviews", 
+       y = "Rating", 
+       color = "Main Genre",
+       title = "Metal Releases By Rating and Number of Reviews") + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                "Death Metal" = "#8f0000", #dark red
+                               "Thrash Metal" = "#7cf000", #light green
+                               "Doom Metal" = "#7e3f0c", #brown
+                               "Ambient" = "#7d7d7d", #gray
+                               "Power Metal" = "#f72bad", #pink
+                               "Heavy Metal" = "#1d00fa", #blue
+                               "Metalcore" = "#ee6917",
+                               "Nu Metal" = "#ffd60a",
+                               "Progressive Metal" = "#0adeff", #light blue
+                               "Folk Metal" = "#b120d9" #purple
+                               )
+                     ) + 
+    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
+  scale_x_continuous(limits=c(1, max(data$Number.of.reviews)), expand = c(0, 0)) + 
+  theme_light() + 
+  theme(#panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(),
+        #panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+}
+plotly_albums <- function(plot_obj){
+  plot_obj %>% 
+    ggplotly(tooltip = "text") %>%
+      config(displayModeBar = F) %>%
+      layout(xaxis=list(fixedrange=TRUE)) %>% 
+      layout(yaxis=list(fixedrange=TRUE))
+}
+
+ui <- fluidPage(
+  title = "Metal Over Time",
+  fluidPage(
+    fluidRow(
+      column(width = 6,
+        plotlyOutput("plotly_ratings"),
+        #plotOutput("plot_ratings"),
+        sliderInput("release_year",
+                    "Release Year",
+                    min = 1970,
+                    max = 2018,
+                    value = 1970,
+                    step = 1,
+                    sep = "",
+                    dragRange=FALSE,
+                    animate = animationOptions(interval = 1000, loop = TRUE))
+        ),
+      column(width = 6,
+             tableOutput("best_albums")
+             )
+      )
+    
+  
+  )
+  
+)
+
+server <- function(input, output){
+  albums <- reactive({
+    df %>% filter(release_year == input$release_year)
+  })
+  
+  output$plotly_ratings <- renderPlotly(
+      albums() %>%
+        plot_albums() %>%
+        plotly_albums()
+    )
+  output$plot_ratings <- renderPlot(
+      albums() %>%
+        plot_albums()
+    )
+  output$best_albums <- renderTable(
+    albums() %>% 
+      select(Band, Release, genre_early_main, Number.of.reviews, Average.rating) %>%
+      filter(Number.of.reviews >= 3) %>%
+      mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
+      arrange(desc(adj_rating)) %>%
+      head(10)
+  )
+  
+}
+shinyApp(ui, server)
+```
+
