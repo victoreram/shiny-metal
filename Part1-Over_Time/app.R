@@ -3,9 +3,10 @@ library(shinydashboard)
 library(tidyverse)
 library(lubridate)
 library(plotly)
-
+library(shinyWidgets)
 
 df <- read.csv('../Data/albums.csv', stringsAsFactors = FALSE )%>% filter(!(genre_early_main %in% c("Rock", "Other")))
+bands <- unique(df$band)
 df_year <- df %>% 
   filter(!is.na(genre_early_main), genre_early_main != '', release_year >= 1970, release_year < 2019) %>%
   group_by(release_year) %>% 
@@ -54,7 +55,57 @@ plot_genres <- function(df_year){
           panel.background = element_blank(), axis.line = element_line(colour = "black"))
   
   
-  }
+}
+
+plot_years <- function(data) {
+  data %>%
+    ggplot(aes(x = release_year, 
+               y = Average.rating,
+               color = genre_early_main,
+               group = Band)
+    ) + 
+    geom_line(alpha=0.25) + 
+    geom_point(aes(size = Number.of.reviews,
+                   text=sprintf("Band: %s
+                                Album: %s
+                                Release Date: %s
+                                Genre: %s
+                                Rating: %s
+                                Number of Reviews: %s
+                                Tags: %s", 
+                                Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)),
+               alpha = 0.4
+    ) + 
+    labs(x= "Release Year", 
+         y = "Rating", 
+         color = "Main Genre",
+         size = "Number of Reviews",
+         title = "Metal Releases By Rating and Release Year") + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                  "Death Metal" = "#8f0000", #dark red
+                                  "Thrash Metal" = "#3ddd03", #light green
+                                  "Doom Metal" = "#7e3f0c", #brown
+                                  "Ambient" = "#7d7d7d", #gray
+                                  "Power Metal" = "#f72bad", #pink
+                                  "Heavy Metal" = "#1d00fa", #blue
+                                  "Metalcore" = "#ee6917",
+                                  "Nu Metal" = "#ffd60a",
+                                  "Progressive Metal" = "#0adeff", #light blue
+                                  "Folk Metal" = "#b120d9" #purple
+    )
+    ) + 
+    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
+    scale_x_continuous(limits=c(1970, 2018), expand = c(0, 0)) + 
+    #scale_x_date() + 
+    scale_size_continuous(range=c(1,8)) + 
+    theme_light() + 
+    theme(#panel.grid.major = element_blank(), 
+      #panel.grid.minor = element_blank(),
+      #panel.background = element_blank(), 
+      axis.line = element_line(colour = "black"))
+  #geom_jitter()
+  
+}
 # ggplotly(g1,
 #          tooltip = "text",
 #          width = 900, height = 600)
@@ -119,7 +170,7 @@ ui <- fluidPage(
                )
                ),
       tabPanel(
-        "Metal Ratings vs. Number of Ratings",
+        "Top Albums By Year",
         fluidRow(
           column(width = 6,
                  plotlyOutput("plotly_ratings"),
@@ -140,6 +191,15 @@ ui <- fluidPage(
           )
         )
         
+      ),
+      tabPanel(
+        "Metal Releases Over The Years",
+        fluidRow(
+          #plotOutput("album_years"),
+          plotlyOutput("album_years_ly"),
+          searchInput("band_search", "Search Band", value = "Black Sabbath", resetValue = "Black Sabbath"),
+          numericInput("min_reviews", "Minimum Reviews", value = 1, min = 1, max = 40)
+        )
       )
 
     )
@@ -172,7 +232,8 @@ server <- function(input, output){
       mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
       arrange(desc(adj_rating)) %>%
       head(10) %>%
-      rename(Genre = genre_early_main, 
+      rename(MainGenre = genre_early_main, 
+             AlbumName = Release,
              NReviews = Number.of.reviews, 
              Rating = Average.rating,
              AdjRating = adj_rating)
@@ -186,7 +247,17 @@ server <- function(input, output){
     paste0("Top 10 albums of ", unique(albums()$release_year))
     
     )
-
+  output$album_years <- renderPlot(
+    df %>%
+      filter(Band == input$band_search) %>%
+      plot_years()
+  )
+  output$album_years_ly <- renderPlotly(
+    df %>% filter(Band == input$band_search, Number.of.reviews >= input$min_reviews) %>%
+      plot_years() %>%
+      ggplotly(tooltip = "text")
+  )
+  
   
 }
 shinyApp(ui, server)
