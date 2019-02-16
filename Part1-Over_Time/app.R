@@ -1,6 +1,63 @@
+library(shiny)
+library(shinydashboard)
+library(tidyverse)
+library(lubridate)
+library(plotly)
+
 
 df <- read.csv('../Data/albums.csv', stringsAsFactors = FALSE )%>% filter(!(genre_early_main %in% c("Rock", "Other")))
+df_year <- df %>% 
+  filter(!is.na(genre_early_main), genre_early_main != '', release_year >= 1970, release_year < 2019) %>%
+  group_by(release_year) %>% 
+  count(genre_early_main) %>%
+  mutate(percent = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(genre_early_main = fct_reorder(genre_early_main, release_year)) %>% 
+  select(-n) %>%
+  tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
+  tidyr::gather(key = genre_early_main, value = percent, - release_year)
+#summarize(a = count(genre_early_main)/total)# %>%
+#count(genre_early_main)
 
+plot_genres <- function(df_year){
+  df_year %>%
+    ggplot(aes(x=release_year, 
+                      y=percent, 
+                      # text = sprintf("Genre: %s
+                      #                Number of Releases: %s,
+                      #                Percent: %s",
+                      #                genre_early_main, n, scales::percent(percent)),
+                      fill=fct_rev(fct_inorder(genre_early_main))
+  )) + 
+    geom_area(position = 'stack') + 
+    labs(x="Release Year", 
+         y = "Percent of Releases", 
+         fill = "Main Genre",
+         title = "Percent of Metal Genre Releases By Year") + 
+    #xlim(c(1970, 2018)) + ylim(c(0, 1)) + 
+    scale_y_continuous(limits=c(0,1), labels = scales::percent, expand = c(0, 0)) + 
+    scale_x_continuous(limits=c(1970, 2018), expand = c(0, 0)) + 
+    scale_fill_manual(values = c("Black Metal" = "#000000", #black
+                                 "Death Metal" = "#8f0000", #dark red
+                                 "Thrash Metal" = "#7cf000", #light green
+                                 "Doom Metal" = "#7e3f0c", #brown
+                                 "Ambient" = "#7d7d7d", #gray
+                                 "Power Metal" = "#f72bad", #pink
+                                 "Heavy Metal" = "#1d00fa", #blue
+                                 "Metalcore" = "#ee6917",
+                                 "Nu Metal" = "#ffd60a",
+                                 "Progressive Metal" = "#0adeff", #light blue
+                                 "Folk Metal" = "#b120d9" #purple
+    )
+    ) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  }
+# ggplotly(g1,
+#          tooltip = "text",
+#          width = 900, height = 600)
 plot_albums <- function(data) {
   data %>%
     ggplot() + 
@@ -55,24 +112,38 @@ plotly_albums <- function(plot_obj){
 ui <- fluidPage(
   title = "Metal Over Time",
   fluidPage(
-    fluidRow(
-      column(width = 6,
-             plotlyOutput("plotly_ratings"),
-             #plotOutput("plot_ratings"),
-             sliderInput("release_year",
-                         "Release Year",
-                         min = 1970,
-                         max = 2018,
-                         value = 1970,
-                         step = 1,
-                         sep = "",
-                         dragRange=FALSE,
-                         animate = animationOptions(interval = 1000, loop = TRUE))
-      ),
-      column(width = 6,
-             tableOutput("best_albums")
+    tabsetPanel(
+      tabPanel("Metal Genres Over The Years",
+               fluidRow(
+                 plotOutput("genre_year")
+               )
+               ),
+      tabPanel(
+        "Metal Ratings vs. Number of Ratings",
+        fluidRow(
+          column(width = 6,
+                 plotlyOutput("plotly_ratings"),
+                 #plotOutput("plot_ratings"),
+                 sliderInput("release_year",
+                             "Release Year",
+                             min = 1970,
+                             max = 2018,
+                             value = 1970,
+                             step = 1,
+                             sep = "",
+                             dragRange=FALSE,
+                             animate = animationOptions(interval = 1000, loop = TRUE))
+          ),
+          column(width = 6,
+                 h2(textOutput("top_albums")),
+                 tableOutput("best_albums")
+          )
+        )
+        
       )
+
     )
+
     
     
   )
@@ -81,7 +152,8 @@ ui <- fluidPage(
 
 server <- function(input, output){
   albums <- reactive({
-    df %>% filter(release_year == input$release_year)
+    df %>% 
+      filter(release_year == input$release_year)
   })
   
   output$plotly_ratings <- renderPlotly(
@@ -99,8 +171,22 @@ server <- function(input, output){
       filter(Number.of.reviews >= 3) %>%
       mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
       arrange(desc(adj_rating)) %>%
-      head(10)
+      head(10) %>%
+      rename(Genre = genre_early_main, 
+             NReviews = Number.of.reviews, 
+             Rating = Average.rating,
+             AdjRating = adj_rating)
   )
+  output$genre_year <- renderPlot(
+    df_year %>%
+      plot_genres()
+  )
+  
+  output$top_albums <- renderText(
+    paste0("Top 10 albums of ", unique(albums()$release_year))
+    
+    )
+
   
 }
 shinyApp(ui, server)
