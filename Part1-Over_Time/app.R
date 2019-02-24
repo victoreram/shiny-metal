@@ -66,6 +66,13 @@ df_year2 <- df %>%
 #    plot_ly(x=~release_year, y=percent)
 # }
 
+Previous_Button<-tags$div(actionButton("Prev_Tab",HTML('
+&lt;div class="col-sm-4"&gt;&lt;i class="fa fa-angle-double-left fa-2x"&gt;&lt;/i&gt;&lt;/div&gt;
+                                                       ')))
+Next_Button<-div(actionButton("Next_Tab",HTML('
+                                              &lt;div class="col-sm-4"&gt;&lt;i class="fa fa-angle-double-right fa-2x"&gt;&lt;/i&gt;&lt;/div&gt;
+                                              ')))
+
 ui <- fluidPage(
   # setBackgroundColor(
   #   color = c("#000000", "#B6B6B6"),
@@ -109,7 +116,24 @@ ui <- fluidPage(
                ),
       tabPanel("Genres Over The Years",
                fluidRow(
-                 plotlyOutput("genre_year_ly")
+                 
+                   sliderInput("year",
+                               "Year",
+                               min = 1970,
+                               max = 2018,
+                               value = 1970,
+                               step = 1,
+                               sep = "",
+                               dragRange=FALSE,
+                               animate = animationOptions(interval = 3000, loop = F)
+                   )
+                 
+                 
+                 #uiOutput("Next_Previous")
+               ),
+               fluidRow(
+                 #plotlyOutput("genre_year_ly")
+                 plotOutput("genre_year")
                )
                ),
       
@@ -211,9 +235,17 @@ server <- function(input, output, session){
              Rating = Average.rating,
              AdjRating = adj_rating)
   )
-  output$genre_year <- renderPlot(
-    df_year %>%
+  genre_year_plot <- reactive({
+    background <- df_year %>%
       plot_genres()
+    foreground <- df_year %>% 
+      plot_genres(a1 = 0.8, year = input$year)
+    background + foreground
+  })
+  
+  output$genre_year <- renderPlot(
+    #genre_year_plot
+    df_year %>% plot_genres(year = input$year)
   )
   output$genre_year_ly <- renderPlotly(
     df_year %>%
@@ -292,7 +324,21 @@ server <- function(input, output, session){
   # observeEvent(input$genre_select, {
   #   updateSelectInput(input$band_select, choices = df_one_genre()$Band)
   # }, ignoreInit = T)
-  
+
+  # output$Next_Previous=renderUI({
+  #   #tab_list=input$List_of_tab[-length(input$List_of_tab)]
+  #   years <- df_year %>% arrange(year) %>% distinct(year) %>% pull(year)
+  #   nb_tab=length(tab_list)
+  #   nb_tab <- length(years)
+  #   if (which(years==input$tabBox_next_previous)==nb_tab)
+  #     column(1,offset=1,Previous_Button)
+  #   else if (which(years==input$tabBox_next_previous)==1)
+  #     column(1,offset = 10,Next_Button)
+  #   else
+  #     div(column(1,offset=1,Previous_Button),column(1,offset=8,Next_Button))
+  # })
+
+
   
 }
 shinyApp(ui, server)

@@ -1,5 +1,6 @@
-plot_genres <- function(df_year){
+plot_genres <- function(df_year, a1 = 0.1, year = 2018){
   df_year %>% 
+    filter(release_year <= year) %>%
     mutate(MainGenre = fct_inorder(genre_early_main)) %>%
     rename(Percent = percent) %>%
     ggplot(aes(x=release_year, 
@@ -11,7 +12,8 @@ plot_genres <- function(df_year){
                fill=MainGenre
     )
     ) + 
-    geom_area(position = 'stack', alpha = 0.1) + 
+    geom_area(position = 'stack', alpha = a1) + 
+    geom_vline(xintercept = year) + 
     labs(x="Release Year", 
          y = "Percent of Releases", 
          fill = "Main Genre",
@@ -33,19 +35,21 @@ plot_genres <- function(df_year){
     )
     ) + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(), axis.line = element_line(colour = "black"))
-  
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))# + 
+    
+    #geom_area(data = df_year %>% filter(release_year <= year), alpha = a2)
+    
   
 }
 
-plot_years <- function(data) {
+plot_years <- function(data, a = 0.1) {
   data %>%
     ggplot(aes(x = release_year, 
                y = Average.rating,
                color = genre_early_main,
                group = Band)
     ) + 
-    geom_line(alpha=0.1) + 
+    geom_line(alpha=a) + 
     geom_point(aes(size = Number.of.reviews,
                    text=sprintf("Band: %s
                                 Album: %s
@@ -55,7 +59,7 @@ plot_years <- function(data) {
                                 Number of Reviews: %s
                                 Tags: %s", 
                                 Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)),
-               alpha = 0.1
+               alpha = a
     ) + 
     labs(x= "Release Year", 
          y = "Rating", 
