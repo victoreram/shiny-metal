@@ -5,6 +5,7 @@ library(lubridate)
 library(plotly)
 library(shinyWidgets)
 library(gganimate)
+library(glue)
 
 source("plotting.R", local = TRUE)
 
@@ -17,61 +18,31 @@ doom_bands <- unique(df %>% filter(genre_early_main == 'Doom Metal') %>% arrange
 early_genres <- unique(df$genre_early_main)
 
 df_genre_text <- read.csv('genre_text.csv', stringsAsFactors = F)
+#df_no_ratings <- read.csv('../Data/albums_with_no_reviews.csv')
 
-df_year <- df %>% 
-  filter(!is.na(genre_early_main), 
-         genre_early_main != '', 
-         release_year >= 1970, 
-         release_year < 2019) %>%
-  group_by(release_year) %>% 
-  count(genre_early_main) %>%
-  mutate(percent = n/sum(n)) %>% 
-  ungroup() %>% 
-  mutate(genre_early_main = fct_reorder(genre_early_main, release_year)) %>% 
-  select(-n) %>%
-  tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
-  tidyr::gather(key = genre_early_main, value = percent, - release_year)
-#summarize(a = count(genre_early_main)/total)# %>%
-#count(genre_early_main)
-
-df_year2 <- df %>% 
-  filter(!is.na(genre_early_main), 
-         genre_early_main != '', 
-         release_year >= 1970, 
-         release_year < 2019) %>%
-  group_by(release_year) %>% 
-  count(genre_early_main) %>%
-  mutate(percent = n/sum(n)) %>% 
-  ungroup() %>% 
-  mutate(genre_early_main = fct_reorder(genre_early_main, release_year)) %>% 
-  select(-n) %>%
-  tidyr::spread(key = genre_early_main, value = percent, fill = 0)
-
-
-
-# p <- plot_ly(data, x = ~year, y = ~Food.and.Tobacco, name = 'Food and Tobacco', type = 'scatter', mode = 'none', stackgroup = 'one', groupnorm = 'percent', fillcolor = '#F5FF8D') %>%
-#   add_trace(y = ~Household.Operation, name = 'Household Operation', fillcolor = '#50CB86') %>%
-#   add_trace(y = ~Medical.and.Health, name = 'Medical and Health', fillcolor = '#4C74C9') %>%
-#   add_trace(y = ~Personal.Care, name = 'Personal Care', fillcolor = '#700961') %>%
-#   add_trace(y = ~Private.Education, name = 'Private Education', fillcolor = '#312F44') %>%
-#   layout(title = 'United States Personal Expenditures by Categories',
-#          xaxis = list(title = "",
-#                       showgrid = FALSE),
-#          yaxis = list(title = "Proportion from the Total Expenditures",
-#                       showgrid = FALSE,
-#                       ticksuffix = '%'))
+# df_year <- df %>% 
+#   filter(!is.na(genre_early_main), 
+#          genre_early_main != '', 
+#          release_year >= 1970, 
+#          release_year < 2019) %>%
+#   group_by(release_year) %>% 
+#   count(genre_early_main) %>%
+#   mutate(percent = n/sum(n)) %>% 
+#   ungroup() %>% 
+#   mutate(genre_early_main = fct_reorder(genre_early_main, release_year))
+# df_year <- df_year %>% 
+#   select(-n) %>%
+#   tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
+#   tidyr::gather(key = genre_early_main, value = percent, - release_year) %>%
+#   left_join(
+#     df_year %>%
+#       select(-percent) %>%
+#       tidyr::spread(key = genre_early_main, value = n, fill = 0) %>%
+#       tidyr::gather(key = genre_early_main, value = n, - release_year)
+#   ) %>% 
+#   mutate(description = glue("<strong>{genre_early_main}</strong> made up of <strong>{scales::percent(percent)}</strong> ({n} total)"))
 # 
-# plotly_genres <- function(data){
-#   data %>%
-#    plot_ly(x=~release_year, y=percent)
-# }
-
-Previous_Button<-tags$div(actionButton("Prev_Tab",HTML('
-&lt;div class="col-sm-4"&gt;&lt;i class="fa fa-angle-double-left fa-2x"&gt;&lt;/i&gt;&lt;/div&gt;
-                                                       ')))
-Next_Button<-div(actionButton("Next_Tab",HTML('
-                                              &lt;div class="col-sm-4"&gt;&lt;i class="fa fa-angle-double-right fa-2x"&gt;&lt;/i&gt;&lt;/div&gt;
-                                              ')))
+df_year <- read.csv("../Data/albums_summary.csv")
 
 ui <- fluidPage(
   # setBackgroundColor(
@@ -89,10 +60,21 @@ ui <- fluidPage(
     tabsetPanel(
       tabPanel("The Genres",
                fluidRow(
-                 h1("What's in a genre?", align="center"),
-                 h5(em("Lay down your soul to the gods rock n' roll"), align="center"),
+                 h1("The (Main) Genres of Metal (According to Me)", align="center"),
+                 h5(em("'Lay down your soul to the gods rock n' roll!'"), align="center"),
+                 h5(em("- Venom, Black Metal, 1981"), align="center"),
                  hr(),
-                 p("Metal is a broad and diverse form of music with countless styles. Genres are a convenient way to set boundaries between distinct styles, but they are far from definitive. Countless productive hours have been spent on arguing if X band belongs to Y genre, but I had to draw the line somewhere. The categories laid out here are a combination of what's programmatically convenient and my own personal interpreations.")
+                 column(
+                   11,
+                   p("Metal is a broad and diverse form of music with countless styles. 
+                   Genres are a convenient way to set boundaries between distinct styles, but they are far from definitive. 
+                     Countless productive hours have been spent on arguing if X band belongs to Y genre, but I had to draw the line somewhere. 
+                     The categories laid out here are a combination of what's programmatically convenient and my own personal interpreations."
+                   ),
+                   offset=0.5
+                   
+                 )
+                
                ),
                fluidRow(
                  hr(),
@@ -116,29 +98,83 @@ ui <- fluidPage(
                ),
       tabPanel("Genres Over The Years",
                fluidRow(
-                 
-                   sliderInput("year",
-                               "Year",
-                               min = 1970,
-                               max = 2018,
-                               value = 1970,
-                               step = 1,
-                               sep = "",
-                               dragRange=FALSE,
-                               animate = animationOptions(interval = 3000, loop = F)
-                   )
-                 
-                 
+
+                   h1("Genres Over The Years", align="center"),
+                   h5(em("'A lyric'"), align="center"),
+                   h5(em("- Band, Album, Year"), align="center"),
+                   hr(),
+                   column(
+                     11,
+                   p("Metal has a rich history, dating back to its humble roots in Birmingham UK in the early 1970's,
+                     to the diverse, worldwide genre it is today."),
+                   offset=0.5
+                   
+                 )
+               ),
+              fluidRow( 
+              hr(),
+                   column(8,
+                          p("Use the slider below to see the landscape of metal for a given year."),
+                          # tags$head(
+                          #   tags$style(type="text/css", ".irs { max-width: 800px; }")
+                          # ),
+                          column(width = 6,
+                            sliderInput("year",
+                                        "Year",
+                                        min = 1970,
+                                        max = 2018,
+                                        value = 1970,
+                                        step = 1,
+                                        sep = "",
+                                        dragRange=FALSE,
+                                        width = "100%",
+                                        animate = animationOptions(interval = 3000, loop = F)
+                                        ),
+                            offset = 1
+                          ),
+                          plotOutput("genre_year_line"),
+                          
+                          br(),
+                          br(),
+                          br(),
+                          br(),
+                          br(),
+                          br()
+                          #plotOutput("genre_year")
+                          ),
+                   column(4,
+                          h2(textOutput("genre_current_year")),
+                          br(),
+                          htmlOutput("genre_year_html")
+                          #verbatimTextOutput("genre_year_text")
+                          )
                  #uiOutput("Next_Previous")
                ),
                fluidRow(
                  #plotlyOutput("genre_year_ly")
-                 plotOutput("genre_year")
+                 
                )
                ),
       
       tabPanel(
         "Top Albums By Year",
+        fluidRow(
+          
+          h1("Top Albums By Year", align="center"),
+          h5(em("'A lyric'"), align="center"),
+          h5(em("- Band, Album, Year"), align="center"),
+          hr(),
+          column(
+            11,
+            p("As you've seen, there have been many, many metal albums released over the years. How do we determine the best ones?",
+              "Thankfully, metalheads are an opinionated bunch and metal-archives has over 100,000 reviews.",
+              "I filtered all the albums with at least 1 review and calculated an 'Adjusted Rating' that weighs an albums average rating by the number of reviews",
+              "The formula for Adjusted Rating is simply Adjusted Rating = Average.rating - 100 + Number.of.reviews"),
+            offset=0.5
+            
+            )
+        ),
+        hr(),
         fluidRow(
           column(width = 6,
                  plotlyOutput("plotly_ratings"),
@@ -164,13 +200,31 @@ ui <- fluidPage(
       ),
       tabPanel(
         "Metal Releases Over The Years",
+        fluidRow(h1("Metal Releases Over The Years", align="center"),
+                 h5(em("'A lyric'"), align="center"),
+                 h5(em("- Band, Album, Year"), align="center"),
+                 hr()
+                 ),
         fluidRow(
           #plotOutput("album_years"),
           plotlyOutput("album_years_ly"),
-          selectInput("band_select", "Select Band", choices = doom_bands,selected = "Black Sabbath"),
+          selectInput("band_select", 
+                      "Select Band", 
+                      choices = bands,
+                      selected = bands[1]
+                      ),
           #searchInput("band_search", "Search Band", value = "Black Sabbath", resetValue = "Black Sabbath"),
-          numericInput("min_reviews", "Minimum Reviews", value = 1, min = 1, max = 40),
-          selectInput("genre_select", "Genres", choices=early_genres, selected = "Doom Metal")
+          numericInput("min_reviews", 
+                       "Minimum Reviews",
+                       value = 1, 
+                       min = 1, 
+                       max = 40
+                       ),
+          selectInput("genre_select", 
+                      "Genres", 
+                      choices = early_genres, 
+                      selected = "Heavy Metal"
+                      )
         )
       )
 
@@ -242,6 +296,38 @@ server <- function(input, output, session){
       plot_genres(a1 = 0.8, year = input$year)
     background + foreground
   })
+  output$genre_year_line <- renderPlot(
+    df_year %>% plot_genres_line(year = input$year)
+  )
+  genre_year_text <- reactive({
+    df_genre_year_text <- df_year %>% 
+      filter(release_year==input$year) %>%
+      pull(description)
+    #print(glue_collapse(df_genre_year_text, sep = "\n"))
+    glue_collapse(df_genre_year_text, sep = "\n")
+  })
+  output$genre_current_year <- renderText(
+    sprintf("In %s...", input$year)
+  )
+  output$genre_year_text <- renderText(
+    genre_year_text()
+  )
+  genre_year_html <- reactive({
+    df_genre_year_text <- df_year %>% 
+      filter(release_year==input$year)
+    descriptions <- df_genre_year_text %>%
+      pull(description)
+    #print(glue_collapse(df_genre_year_text, sep = "\n"))
+    total_albums <- df_genre_year_text %>% 
+      summarize(total = sum(n)) %>% 
+      mutate(total = glue("<h3>There were <strong>{as.character(total)}</strong> metal releases</h3>")) %>%
+      pull(total)
+    
+    glue(total_albums, glue_collapse(descriptions, sep = "<br/>"))
+  })
+  output$genre_year_html <- renderUI(
+    HTML(genre_year_html())
+  )
   
   output$genre_year <- renderPlot(
     #genre_year_plot
@@ -312,13 +398,16 @@ server <- function(input, output, session){
     selected_bands() %>%
       plotly_simple()
   )
-
+  available_bands <- reactive({
+    df_one_genre() %>% arrange(Band) %>% pull(Band) %>% unique()
+    
+  })
   observeEvent(df_one_genre(), {
-    d <- df_one_genre()
+    #d <- df_one_genre()
     updateSelectInput(session,
                       "band_select", 
-                      choices = d %>% arrange(Band) %>% pull(Band) %>% unique(),
-                      selected = input$band_select
+                      choices = available_bands(),
+                      selected = available_bands()[1]
                       )
   }, ignoreInit = T)
   # observeEvent(input$genre_select, {

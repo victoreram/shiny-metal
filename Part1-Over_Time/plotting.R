@@ -1,8 +1,11 @@
-plot_genres <- function(df_year, a1 = 0.1, year = 2018){
-  df_year %>% 
-    filter(release_year <= year) %>%
+plot_genres <- function(df_year, a1 = 0.75, year = 2018){
+  df_year <- df_year %>% 
     mutate(MainGenre = fct_inorder(genre_early_main)) %>%
-    rename(Percent = percent) %>%
+    rename(Percent = percent)
+  df_sub <- df_year %>% filter(release_year <= year)
+  print(df_year %>% filter(release_year==year))
+  df_year %>% 
+    #filter(release_year <= year) %>%
     ggplot(aes(x=release_year, 
                y=Percent, 
                # text = sprintf("Genre: %s
@@ -12,7 +15,8 @@ plot_genres <- function(df_year, a1 = 0.1, year = 2018){
                fill=MainGenre
     )
     ) + 
-    geom_area(position = 'stack', alpha = a1) + 
+    geom_area(position = 'stack', alpha = 0.1) + 
+    geom_area(position = 'stack', alpha = a1, data = df_sub) +
     geom_vline(xintercept = year) + 
     labs(x="Release Year", 
          y = "Percent of Releases", 
@@ -39,6 +43,64 @@ plot_genres <- function(df_year, a1 = 0.1, year = 2018){
     
     #geom_area(data = df_year %>% filter(release_year <= year), alpha = a2)
     
+  
+}
+
+plot_genres_line <- function(df_year, a1 = 0.75, year = 2018){
+  df_year <- df_year %>% mutate(genre_early_main = fct_inorder(genre_early_main))
+  df_sums <- df_year %>%
+    group_by(release_year) %>% 
+    summarize(n_albums = sum(n))
+  df_sub <- df_year %>% 
+    filter(release_year <= year) %>% 
+    mutate(genre_early_main = fct_inorder(genre_early_main))
+  df_sub_sums <- df_sub %>%
+    group_by(release_year) %>% 
+    summarize(n_albums = sum(n))
+  
+  df_year %>% ggplot(aes(x = release_year,
+                        y = n,
+                        color = genre_early_main)
+                    ) + 
+    geom_line(alpha = 0.1) + 
+    geom_line(data=df_sub, alpha = a1) + 
+    geom_line(aes(x = release_year, 
+                  y = n_albums
+                  ), 
+              data=df_sums,
+              inherit.aes=FALSE,
+              alpha = 0.1,
+              linetype=2
+              ) + 
+    geom_line(aes(x = release_year, 
+                  y = n_albums),
+              data=df_sub_sums,
+              inherit.aes=FALSE,
+              alpha = a1,
+              linetype=2
+    ) +  
+    geom_vline(xintercept = year) + 
+    labs(x="Release Year", 
+         y = "Number of Releases", 
+         color = "Main Genre",
+         title = "Number of Metal Genre Releases By Year") + 
+    scale_x_continuous(limits=c(1970, 2018), expand = c(0, 0)) + 
+    scale_y_continuous(expand = c(0,0)) + 
+    scale_color_manual(values = c("Black Metal" = "#000000", #black
+                                 "Death Metal" = "#8f0000", #dark red
+                                 "Thrash Metal" = "#7cf000", #light green
+                                 "Doom Metal" = "#7e3f0c", #brown
+                                 "Ambient" = "#7d7d7d", #gray
+                                 "Power Metal" = "#f72bad", #pink
+                                 "Heavy Metal" = "#1d00fa", #blue
+                                 "Metalcore" = "#ee6917",
+                                 "Nu Metal" = "#ffd60a",
+                                 "Progressive Metal" = "#0adeff", #light blue
+                                 "Folk Metal" = "#b120d9" #purple
+    )
+    ) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
   
 }
 
