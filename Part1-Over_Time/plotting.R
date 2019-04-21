@@ -171,7 +171,7 @@ plot_albums <- function(data) {
                                 Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)), 
                position = position_jitter(width = 0.5, height = 0.5),
                size = 1,
-               alpha = 0.6
+               alpha = 0.5
     ) + 
     labs(x="Number of Reviews", 
          y = "Rating", 

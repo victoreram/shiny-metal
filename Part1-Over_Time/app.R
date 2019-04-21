@@ -58,19 +58,29 @@ ui <- fluidPage(
   #                        )
   # ),
     tabsetPanel(
-      tabPanel("The Genres",
+      tabPanel("The Subgenres",
                fluidRow(
-                 h1("The (Main) Genres of Metal (According to Me)", align="center"),
+                 h1("The Subgenres of Metal (According to Me)", align="center"),
                  h5(em("'Lay down your soul to the gods rock n' roll!'"), align="center"),
                  h5(em("- Venom, Black Metal, 1981"), align="center"),
                  hr(),
                  column(
                    11,
-                   p("Metal is a broad and diverse form of music with countless styles. 
-                   Genres are a convenient way to set boundaries between distinct styles, but they are far from definitive. 
-                     Countless productive hours have been spent on arguing if X band belongs to Y genre, but I had to draw the line somewhere. 
-                     The categories laid out here are a combination of what's programmatically convenient and my own personal interpreations."
+                   p("Metal is a broad and diverse form of music with countless styles.",
+                   "Subgenres are a convenient way to set boundaries between distinct styles, but they are far from definitive.", 
+                   "When metalheads aren't rattling their head to the sounds of filthy power chords, they're arguing on the internet or at a dingy dive bar over semantics about metal itself:",
+                   "'Does band X belong in subgenre Y or Z?', 'Is band X even metal at all?'",
+                   "Nothing will ever settle these debates (in fact I'll probably add fuel to this fire), so I will caveat the categorizations of certain bands here.",
+                   "The categories laid out here are a combination of what's programmatically convenient and my own personal interpretations. ",
+                   ""
                    ),
+                   p("Let's start with defining what these genres even are. ",
+                     "The uninitiated may wonder: 'what the hell is the difference between death metal and power metal anyway?'. ",
+                     "Or, they may think that metal is just a jumbled mess of blast beats and incoherent screaming",
+                     "I don't blame you for thinking either of those things if your only exposure to metal is through baseball stadiums and rushedly walking past a Hot-Topic.",
+                     "I'm here to show that there's much, much more to metal.",
+                     "Below, you can learn about the main subgenres of metal and the most notable albums in that genre."
+                     ),
                    offset=0.5
                    
                  )
@@ -96,17 +106,21 @@ ui <- fluidPage(
                )
                #fluidRow(plotlyOutput("genre_year_ly"))
                ),
-      tabPanel("Genres Over The Years",
+      tabPanel("Subgenres Over The Years",
                fluidRow(
 
-                   h1("Genres Over The Years", align="center"),
-                   h5(em("'A lyric'"), align="center"),
-                   h5(em("- Band, Album, Year"), align="center"),
+                   h1("Subgenres Over The Years", align="center"),
+                   h5(em("'Wimps and posers, leave the hall'"), align="center"),
+                   h5(em("- Manowar, Metal Warriors, 1992"), align="center"),
                    hr(),
                    column(
                      11,
-                   p("Metal has a rich history, dating back to its humble roots in Birmingham UK in the early 1970's,
-                     to the diverse, worldwide genre it is today."),
+                   p("'When and where did all of these subgenres come from?', you may be wondering.",
+                     "Since Black Sabbath's Tony Iommi first struck the devil's tritone, countless bands mimicked that dark sound, injected new musical elements, and projected that into new forms of expression.",
+                     "Just as Black Sabbath was a reaction against the hippy culture of the 1960's, thrash metal was a rebellion against the exploding glam scene of the early 80's.",
+                     "And as thrash started to run its course, more extreme forms of metal such as death metal and black metal rose to prominence."
+                   ),
+                   p("The graph below shows you how the metal scene has evolved over time. To the right is a summary of the subgenre composition of metal for a given year."),
                    offset=0.5
                    
                  )
@@ -167,8 +181,9 @@ ui <- fluidPage(
           column(
             11,
             p("As you've seen, there have been many, many metal albums released over the years. How do we determine the best ones?",
-              "Thankfully, metalheads are an opinionated bunch and metal-archives has over 100,000 reviews.",
-              "I filtered all the albums with at least 1 review and calculated an 'Adjusted Rating' that weighs an albums average rating by the number of reviews",
+              "Thankfully, the many opinionated metalheads at metal-archives have contributed over 100,000 reviews across about 40,000 albums.",
+              "Not all albums have reviews, so I filtered those out.",
+              "I then took all the albums with at least 1 review and calculated an 'Adjusted Rating' that weighs an albums average rating by the number of reviews",
               "The formula for Adjusted Rating is simply Adjusted Rating = Average.rating - 100 + Number.of.reviews"),
             offset=0.5
             
@@ -176,33 +191,68 @@ ui <- fluidPage(
         ),
         hr(),
         fluidRow(
-          column(width = 6,
-                 plotlyOutput("plotly_ratings"),
                  #plotOutput("plot_ratings"),
-                 sliderInput("release_year",
-                             "Release Year",
-                             min = 1970,
-                             max = 2018,
-                             value = 1970,
-                             step = 1,
-                             sep = "",
-                             dragRange=FALSE,
-                             animate = animationOptions(interval = 3000, loop = F)),
-                 checkboxGroupInput("genre_checkbox", "Genres", choices=early_genres, selected=early_genres)
+                column(6,
+                       selectInput("release_year",
+                                   "Release Year",
+                                   choices = unique(df_year$release_year)
+                                   )
+                       ),
+                column(6,
+                       selectInput("subgenres_top_albums",
+                                   "Subgenre",
+                                   choices = c("Metal", early_genres),
+                                   selected = "Metal"
+                                   )
+
+                 ),
+                 # checkboxGroupInput("genre_checkbox", "Genres", 
+                 #                    choices=early_genres, 
+                 #                    selected=early_genres,
+                 #                    inline=TRUE)
+                 #plotlyOutput("plotly_ratings")
                  
-          ),
-          column(width = 6,
-                 h2(textOutput("top_albums")),
+                 
+                 h2(textOutput("top_albums"), align='center'),
                  tableOutput("best_albums")
-          )
+          
         )
         
       ),
       tabPanel(
-        "Metal Releases Over The Years",
-        fluidRow(h1("Metal Releases Over The Years", align="center"),
-                 h5(em("'A lyric'"), align="center"),
-                 h5(em("- Band, Album, Year"), align="center"),
+        "All Albums Laid Out",
+        fluidRow(
+          
+          h1("All Albums Laid Out", align="center"),
+          h5(em("'A lyric'"), align="center"),
+          h5(em("- Band, Album, Year"), align="center"),
+          hr(),
+          column(
+            11,
+            p(""),
+            offset=0.5
+            
+          )
+        ),
+        hr(),
+        fluidRow(
+          plotlyOutput("plotly_ratings")
+        )
+        
+      ),
+      tabPanel(
+        "Releases By Band",
+        fluidRow(h1("Releases By Band", align="center"),
+                 h5(em("'So understand don't waste your time "), align="center"),
+                 h5(em("Always searching for those wasted years'"), align="center"),
+                 h5(em(" - Iron Maiden, Wasted Years, 1986"), align="center"),
+                 column(
+                   11,
+                   p(
+                   ),
+                   offset=0.5
+                   
+                   ),
                  hr()
                  ),
         fluidRow(
@@ -212,19 +262,19 @@ ui <- fluidPage(
                       "Select Band", 
                       choices = bands,
                       selected = bands[1]
-                      ),
-          #searchInput("band_search", "Search Band", value = "Black Sabbath", resetValue = "Black Sabbath"),
-          numericInput("min_reviews", 
-                       "Minimum Reviews",
-                       value = 1, 
-                       min = 1, 
-                       max = 40
-                       ),
-          selectInput("genre_select", 
-                      "Genres", 
-                      choices = early_genres, 
-                      selected = "Heavy Metal"
                       )
+          #searchInput("band_search", "Search Band", value = "Black Sabbath", resetValue = "Black Sabbath"),
+          # numericInput("min_reviews", 
+          #              "Minimum Reviews",
+          #              value = 1, 
+          #              min = 1, 
+          #              max = 40
+          #              ),
+          # selectInput("genre_select", 
+          #             "Genres", 
+          #             choices = early_genres, 
+          #             selected = "Heavy Metal"
+          #             )
         )
       )
 
@@ -240,8 +290,9 @@ server <- function(input, output, session){
   output$title <- renderText({ paste("Only Data Is Real") })
   albums <- reactive({
     df %>% 
-      filter(release_year == input$release_year,
-             genre_early_main %in% input$genre_checkbox)
+      filter(release_year == input$release_year
+             #genre_early_main %in% input$genre_checkbox)
+      )
   })
   
   albums_by_genre <- reactive({
@@ -276,19 +327,29 @@ server <- function(input, output, session){
     albums() %>%
       plot_albums()
   )
-  output$best_albums <- renderTable(
-    albums() %>% 
-      select(Band, Release, genre_early_main, Number.of.reviews, Average.rating) %>%
+  best_albums_reactive <- reactive({
+    df_best_albums <- albums() %>% 
       filter(Number.of.reviews >= 3) %>%
+      select(Band, Release, genre_early_main, Lyrical.themes, Location, Number.of.reviews, Average.rating) %>%
       mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
       arrange(desc(adj_rating)) %>%
-      head(10) %>%
       rename(MainGenre = genre_early_main, 
              AlbumName = Release,
              NReviews = Number.of.reviews, 
+             LyricalThemes = Lyrical.themes,
              Rating = Average.rating,
              AdjRating = adj_rating)
-  )
+    if(input$subgenres_top_albums == 'Metal'){
+      return(df_best_albums)
+    } else {
+      return(df_best_albums %>% 
+               mutate(MainGenre = as.character(MainGenre)) %>%
+               filter(MainGenre == input$subgenres_top_albums))
+    }
+  })
+  output$best_albums <- renderTable({
+    best_albums_reactive() %>% head(10)
+  })
   genre_year_plot <- reactive({
     background <- df_year %>%
       plot_genres()
@@ -340,7 +401,9 @@ server <- function(input, output, session){
     
   )
   output$top_albums <- renderText(
-    paste0("Top Albums of ", unique(albums()$release_year))
+    sprintf("Top %s Albums of %s", 
+            input$subgenres_top_albums, 
+            input$release_year)
     
   )
   output$album_years <- renderPlot(
@@ -350,9 +413,9 @@ server <- function(input, output, session){
   )
   df_one_genre <- reactive({
     df %>% 
-      filter(#Band == input$band_search, 
-        genre_early_main == input$genre_select,
-        Number.of.reviews >= input$min_reviews
+      filter(Band == input$band_select 
+        #genre_early_main == input$genre_select,
+        #Number.of.reviews >= input$min_reviews
       )
     }
   )
@@ -362,8 +425,30 @@ server <- function(input, output, session){
   })
   selected_bands <- reactive({
     #print(df_one_genre %>% filter(Band == input$band_search %>% head()))
-    background <- df_one_genre() %>% plot_years()
-    selected <- background +
+    #background <- df_one_genre() %>% plot_years()
+    #selected <- background +
+    # geom_point(aes(size = Number.of.reviews,
+    #                fill = genre_early_main,
+    #                text=sprintf("Band: %s
+    #                             Album: %s
+    #                             Release Date: %s
+    #                             Genre: %s
+    #                             Rating: %s
+    #                             Number of Reviews: %s
+    #                             Tags: %s", 
+    #                             Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)),
+    #            alpha = 0.8,
+    #            shape = 21,
+    #            stroke = 1,
+    #            color = "green",
+    #            data = df_one_genre() %>% filter(Band == input$band_select)
+    # ) +
+    #   geom_line(alpha = 0.8,
+    #             data = df_one_genre() %>% filter(Band == input$band_select)
+    #   )
+    selected <- df_one_genre() %>% 
+      filter(Band == input$band_select) %>% 
+      ggplot(aes(x=release_year, y=Average.rating)) +
       geom_point(aes(size = Number.of.reviews,
                      fill = genre_early_main,
                      text=sprintf("Band: %s
@@ -383,7 +468,7 @@ server <- function(input, output, session){
       geom_line(alpha = 0.8,
                 data = df_one_genre() %>% filter(Band == input$band_select)
                 )
-                              
+
     selected
   }) 
   #selected_bands <- df %>% 
@@ -399,17 +484,22 @@ server <- function(input, output, session){
       plotly_simple()
   )
   available_bands <- reactive({
-    df_one_genre() %>% arrange(Band) %>% pull(Band) %>% unique()
+    df_one_genre() %>% 
+      arrange(Band) %>% 
+      pull(Band) %>% 
+      unique()
     
   })
-  observeEvent(df_one_genre(), {
-    #d <- df_one_genre()
-    updateSelectInput(session,
-                      "band_select", 
-                      choices = available_bands(),
-                      selected = available_bands()[1]
-                      )
-  }, ignoreInit = T)
+  
+  #observeEvent()
+  # observeEvent(df_one_genre(), {
+  #   #d <- df_one_genre()
+  #   updateSelectInput(session,
+  #                     "band_select", 
+  #                     choices = available_bands(),
+  #                     selected = available_bands()[1]
+  #                     )
+  # }, ignoreInit = T)
   # observeEvent(input$genre_select, {
   #   updateSelectInput(input$band_select, choices = df_one_genre()$Band)
   # }, ignoreInit = T)
