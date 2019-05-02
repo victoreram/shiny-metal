@@ -158,8 +158,8 @@ plot_years <- function(data, a = 0.1) {
 plot_albums <- function(data) {
   data %>%
     ggplot() + 
-    geom_point(aes(x = Number.of.reviews, 
-                   y = Average.rating,
+    geom_point(aes(x = n_reviews_norm, 
+                   y = rating_norm,
                    color = genre_early_main,
                    text=sprintf("Band: %s
                                 Album: %s
@@ -169,14 +169,15 @@ plot_albums <- function(data) {
                                 Number of Reviews: %s
                                 Tags: %s", 
                                 Band, Release, Release.date, genre_early_main, Average.rating, Number.of.reviews, genre_early_stripped)), 
-               position = position_jitter(width = 0.5, height = 0.5),
-               size = 1,
+               position = position_jitter(width = 0.01, height = 0.01),
+               size = 0.6,
                alpha = 0.5
     ) + 
     labs(x="Number of Reviews", 
          y = "Rating", 
-         color = "Main Genre",
-         title = "Metal Releases By Rating and Number of Reviews") + 
+         color = "Main Genre"
+         #title = "Metal Releases By Rating and Number of Reviews"
+         ) + 
     scale_color_manual(values = c("Black Metal" = "#000000", #black
                                   "Death Metal" = "#8f0000", #dark red
                                   "Thrash Metal" = "#7cf000", #light green
@@ -188,11 +189,17 @@ plot_albums <- function(data) {
                                   "Nu Metal" = "#ffd60a",
                                   "Progressive Metal" = "#0adeff", #light blue
                                   "Folk Metal" = "#b120d9" #purple
-    )
-    ) + 
-    scale_y_continuous(limits=c(0,100),  expand = c(0, 0)) + 
-    scale_x_continuous(limits=c(1, max(data$Number.of.reviews)), expand = c(0, 0)) + 
-    theme_light() + 
+                                  )
+                       ) + 
+    #scale_y_continuous(limits=c(0,100),  expand = c(0.01, 0.01)) + 
+    #scale_x_continuous(limits=c(0,40), expand = c(0.01, 0.01)) + 
+    #theme_light() + 
+    geom_vline(xintercept = 0.5) + 
+    #geom_hline(yintercept = 80) +
+    geom_hline(yintercept = 0.5) +
+    #coord_trans(x="log10") + 
+    # scale_y_continuous(expand = c(0,0)) + 
+    # scale_x_continuous(expand = c(0,0)) + 
     theme(#panel.grid.major = element_blank(), 
       #panel.grid.minor = element_blank(),
       #panel.background = element_blank(), 
