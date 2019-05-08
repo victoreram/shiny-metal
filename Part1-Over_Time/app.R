@@ -13,24 +13,16 @@ source("plotting.R", local = TRUE)
 df <- read.csv('../Data/albums.csv', stringsAsFactors = FALSE ) %>% 
   filter(!(genre_early_main %in% c("Rock", "Other"))) %>% 
   arrange(Release.date) %>%
-  mutate(adj_rating = Average.rating - 100 + Number.of.reviews
-         )
-normalize <- function(x)
-{
-  return((x- min(x)) /(max(x)-min(x)))
-}
-# df_min_n_reviews <- df %>% 
-#   mutate(
-#     n_reviews_norm = Number.of.reviews,
-#     rating_norm = Average.rating
-#   ) %>% 
-#   filter(Number.of.reviews >= 3)
+  filter(Release.type %in% c("Full-length", "EP", "Live album", "Demo")) %>%
+  mutate(adj_rating = Average.rating - 100 + Number.of.reviews)
 
 df_min_n_reviews <- df %>% 
   filter(Number.of.reviews >= 5) %>%
   mutate(
     n_reviews_norm = rescale(log10(Number.of.reviews)),
-    rating_norm = rescale(Average.rating^3)
+    rating_norm = rescale(Average.rating^(3)),
+    weighted_rating = rescale(sqrt(n_reviews_norm^2 + rating_norm^2)),
+    adj_rating = rescale(adj_rating)
   )
   
  
@@ -129,10 +121,10 @@ ui <- fluidPage(
                )
                #fluidRow(plotlyOutput("genre_year_ly"))
                ),
-      tabPanel("Subgenres Over The Years",
+      tabPanel("Over The Years",
                fluidRow(
 
-                   h1("Subgenres Over The Years", align="center"),
+                   h1("Over The Years", align="center"),
                    h5(em("'Wimps and posers, leave the hall'"), align="center"),
                    h5(em("- Manowar, Metal Warriors, 1992"), align="center"),
                    hr(),
@@ -190,63 +182,107 @@ ui <- fluidPage(
                fluidRow(
                  #plotlyOutput("genre_year_ly")
                  
-               )
                ),
-      
-      tabPanel(
-        "Top Albums By Year",
-        fluidRow(
-          
-          h1("Top Albums By Year", align="center"),
-          h5(em("'A lyric'"), align="center"),
-          h5(em("- Band, Album, Year"), align="center"),
-          hr(),
-          column(
-            11,
-            p("As you've seen, there have been many, many metal albums released over the years. How do we determine the best ones?",
-              "Thankfully, the many opinionated metalheads at metal-archives have contributed over 100,000 reviews across about 40,000 albums.",
-              "Not all albums have reviews, so I filtered those out.",
-              "I then took all the albums with at least 1 review and calculated an 'Adjusted Rating' that weighs an albums average rating by the number of reviews",
-              "The formula for Adjusted Rating is simply Adjusted Rating = Average.rating - 100 + Number.of.reviews"),
-            offset=0.5
-            
-            )
-        ),
-        hr(),
-        fluidRow(
-                 #plotOutput("plot_ratings"),
-                column(6,
-                       selectInput("release_year",
-                                   "Release Year",
-                                   choices = unique(df_year$release_year)
-                                   )
-                       ),
-                column(6,
+              hr(),
+              column(
+                      11,
+                      p("As you've seen, there have been many, many metal albums released over the years. How do we determine the best ones?",
+                        "Thankfully, the many opinionated metalheads at metal-archives have contributed over 100,000 reviews across about 40,000 albums."
+                        ),
+                      p(
+                        "Not all albums have reviews, so I filtered those out.",
+                        "I then took all the albums with at least 1 review and calculated a 'Weighted Rating', a metric I devised* that weighs an album's average rating with number of reviews.",
+                        "An album that has a high rating with many reviews should rank higher than an album with a high rating with few reviews.",
+                        "The Weighted Rating is not immune from wonky rankings coming from albums would many reviews - I personally would not rank Wintersun's Time I over, say, Mgla's With Heart's Towards None, or many albums for that matter. ",
+                        "But, it does handle popularity and rating for most cases."
+                      ), 
+                      p("*more like 'kinda just made up so it looks about right'"),
+                      offset=0.5
+                      ),
+              hr(),  
+              fluidRow(
+                #plotOutput("plot_ratings"),
+                # column(6,
+                #        selectInput("release_year",
+                #                    "Release Year",
+                #                    choices = unique(df_year$release_year)
+                #        )
+                # ),
+                #column(6,
                        selectInput("subgenres_top_albums",
                                    "Subgenre",
                                    choices = c("Metal", early_genres),
                                    selected = "Metal"
-                                   )
-
-                 ),
-                 # checkboxGroupInput("genre_checkbox", "Genres", 
-                 #                    choices=early_genres, 
-                 #                    selected=early_genres,
-                 #                    inline=TRUE)
-                 #plotlyOutput("plotly_ratings")
-                 
-                 
-                 h2(textOutput("top_albums"), align='center'),
-                 tableOutput("best_albums")
-          
-        )
-        
-      ),
+                #       )
+                       
+                ),
+                # checkboxGroupInput("genre_checkbox", "Genres", 
+                #                    choices=early_genres, 
+                #                    selected=early_genres,
+                #                    inline=TRUE)
+                #plotlyOutput("plotly_ratings")
+                br(),
+                
+                h2(textOutput("top_albums"), align='center'),
+                tableOutput("best_albums")
+                
+              )
+               ),
+      
+      # tabPanel(
+      #   "Top Albums By Year",
+      #   fluidRow(
+      #     
+      #     h1("Top Albums By Year", align="center"),
+      #     h5(em("'A lyric'"), align="center"),
+      #     h5(em("- Band, Album, Year"), align="center"),
+      #     hr(),
+      #     column(
+      #       11,
+      #       p("As you've seen, there have been many, many metal albums released over the years. How do we determine the best ones?",
+      #         "Thankfully, the many opinionated metalheads at metal-archives have contributed over 100,000 reviews across about 40,000 albums.",
+      #         "Not all albums have reviews, so I filtered those out.",
+      #         "I then took all the albums with at least 1 review and calculated an 'Adjusted Rating' that weighs an albums average rating by the number of reviews",
+      #         "The formula for Adjusted Rating is simply Adjusted Rating = Average.rating - 100 + Number.of.reviews"),
+      #       offset=0.5
+      #       
+      #       )
+      #   )
+      #   # hr(),
+      #   # fluidRow(
+      #   #          #plotOutput("plot_ratings"),
+      #   #         column(6,
+      #   #                selectInput("release_year",
+      #   #                            "Release Year",
+      #   #                            choices = unique(df_year$release_year)
+      #   #                            )
+      #   #                ),
+      #   #         column(6,
+      #   #                selectInput("subgenres_top_albums",
+      #   #                            "Subgenre",
+      #   #                            choices = c("Metal", early_genres),
+      #   #                            selected = "Metal"
+      #   #                            )
+      #   # 
+      #   #          ),
+      #   #          # checkboxGroupInput("genre_checkbox", "Genres", 
+      #   #          #                    choices=early_genres, 
+      #   #          #                    selected=early_genres,
+      #   #          #                    inline=TRUE)
+      #   #          #plotlyOutput("plotly_ratings")
+      #   #          
+      #   #          
+      #   #          h2(textOutput("top_albums"), align='center'),
+      #   #          tableOutput("best_albums")
+      #   #   
+      #   # )
+      #   
+      # ),
       tabPanel(
-        "All Albums Laid Out",
+        "The Best and Worst Albums",
         fluidRow(
           
-          h1("All Albums Laid Out", align="center"),
+          h1("The Best and Worst Albums", align="center"),
           h5(em("'A lyric'"), align="center"),
           h5(em("- Band, Album, Year"), align="center"),
           hr(),
@@ -260,19 +296,29 @@ ui <- fluidPage(
         ),
         hr(),
         fluidRow(
-          p("Show all albums between"), 
-          numericInput("all_albums_min_reviews",
-                       "Minimum Reviews",
-                       value = 5,
-                       min = 5),
-          p("and"),
-          numericInput("all_albums_max_reviews",
-                       "Maximum Reviews",
-                       value = 40,
-                       min = 6,
-                       max = 50),
-          p("reviews."),
+          column(6,
+          #fixedRow(
+            p("Show all albums between"), 
+            numericInput("all_albums_min_reviews",
+                         "Minimum Reviews",
+                         value = 5,
+                         min = 5,
+                         width = '15%'),
+            p("and"),
+            numericInput("all_albums_max_reviews",
+                         "Maximum Reviews",
+                         value = 40,
+                         min = 6,
+                         max = 40,
+                         width = '15%'
+            ),
+            p("reviews.")
+          ),
+          offset = 0.5
+        ),
+        fluidRow(
           plotlyOutput("plotly_ratings")
+          
         )
         
       ),
@@ -335,15 +381,15 @@ ui <- fluidPage(
 server <- function(input, output, session){
   output$title <- renderText({ paste("Only Data Is Real") })
   albums <- reactive({
-    df %>% 
-      filter(release_year == input$release_year
+    df_min_n_reviews %>% 
+      filter(release_year == input$year
              #genre_early_main %in% input$genre_checkbox)
       )
   })
   
 
   albums_by_genre <- reactive({
-    df %>%
+    df_min_n_reviews %>%
       filter(genre_early_main %in% input$genre_select1,
              Number.of.reviews >= 8) %>%
       arrange(desc(adj_rating)) %>% 
@@ -382,16 +428,16 @@ server <- function(input, output, session){
   )
   best_albums_reactive <- reactive({
     df_best_albums <- albums() %>% 
-      filter(Number.of.reviews >= 3) %>%
-      select(Band, Release, genre_early_main, Lyrical.themes, Location, Number.of.reviews, Average.rating) %>%
-      mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
+      filter(Number.of.reviews >= 5) %>%
+      select(Band, Release, genre_early_main, Lyrical.themes, Location, Number.of.reviews, Average.rating, adj_rating) %>%
+      #mutate(adj_rating = Average.rating - 100 + Number.of.reviews) %>%
       arrange(desc(adj_rating)) %>%
       rename(MainGenre = genre_early_main, 
              AlbumName = Release,
              NReviews = Number.of.reviews, 
              LyricalThemes = Lyrical.themes,
              Rating = Average.rating,
-             AdjRating = adj_rating)
+             WeightedRating = adj_rating)
     if(input$subgenres_top_albums == 'Metal'){
       return(df_best_albums)
     } else {
@@ -456,7 +502,7 @@ server <- function(input, output, session){
   output$top_albums <- renderText(
     sprintf("Top %s Albums of %s", 
             input$subgenres_top_albums, 
-            input$release_year)
+            input$year)
     
   )
   output$album_years <- renderPlot(
@@ -466,7 +512,7 @@ server <- function(input, output, session){
   )
   df_one_genre <- reactive({
     df %>% 
-      filter(Band == input$band_select,
+      filter(tolower(Band) == tolower(input$band_select),
              Release.type %in% input$release_types
         #genre_early_main == input$genre_select,
         #Number.of.reviews >= input$min_reviews
@@ -478,6 +524,9 @@ server <- function(input, output, session){
       filter(genre_early_main %in% input$genre_checkbox)
   })
   selected_bands <- reactive({
+    validate(
+      need(df_one_genre() %>% nrow > 0, "No albums found!")
+    )
     #print(df_one_genre %>% filter(Band == input$band_search %>% head()))
     #background <- df_one_genre() %>% plot_years()
     #selected <- background +
@@ -524,6 +573,7 @@ server <- function(input, output, session){
       geom_line(alpha = 0.8
                 #data = df_one_genre() %>% filter(Band == input$band_select)
                 ) + 
+      scale_y_continuous(limits=c(0,100),  expand = c(0.01, 0.01)) + 
       theme(#axis.title.x=element_blank(),
             #axis.text.x=element_blank(),
             axis.ticks.x=element_blank(),

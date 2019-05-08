@@ -191,8 +191,12 @@ plot_albums <- function(data) {
                                   "Folk Metal" = "#b120d9" #purple
                                   )
                        ) + 
-    #scale_y_continuous(limits=c(0,100),  expand = c(0.01, 0.01)) + 
-    #scale_x_continuous(limits=c(0,40), expand = c(0.01, 0.01)) + 
+    scale_y_continuous(limits=c(0,1.0),  expand = c(0.01, 0.01)) + 
+    scale_x_continuous(limits=c(0,1.0), expand = c(0.01, 0.01)) + 
+    xlab("More Reviews →") +
+    ylab("Higher Rating →") +
+    #xlab(expression("More Reviews (\u2198)")) +
+    #ylab(expression("High Rating (\u2191)")) +
     #theme_light() + 
     geom_vline(xintercept = 0.5) + 
     #geom_hline(yintercept = 80) +
@@ -200,10 +204,15 @@ plot_albums <- function(data) {
     #coord_trans(x="log10") + 
     # scale_y_continuous(expand = c(0,0)) + 
     # scale_x_continuous(expand = c(0,0)) + 
-    theme(#panel.grid.major = element_blank(), 
-      #panel.grid.minor = element_blank(),
+    theme(panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank()
       #panel.background = element_blank(), 
-      axis.line = element_line(colour = "black"))
+      #axis.line = element_line(colour = "black")
+      )
 }
 plotly_simple <- function(plot_obj){
   plot_obj %>% 
