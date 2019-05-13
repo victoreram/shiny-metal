@@ -63,17 +63,15 @@ df_year <- read.csv("../Data/albums_summary.csv")
 tweaks <- 
   list(tags$head(tags$style(HTML("
                                  .multicol { 
-                                 height: 100px;
-                                 width: 900px;
-                                 -webkit-column-count: 4; /* Chrome, Safari, Opera */ 
-                                 -moz-column-count: 4;    /* Firefox */ 
-                                 column-count: 4; 
-                                 -moz-column-fill: auto;
-                                 -column-fill: auto;
+                                   height: 180px;
+                                   -webkit-column-count: 2; /* Chrome, Safari, Opera */ 
+                                   -moz-column-count: 2;    /* Firefox */ 
+                                   column-count: 2; 
+                                   -moz-column-fill: auto;
+                                   -column-fill: auto;
                                  } 
                                  ")) 
   ))
-
 
 
 # values to show, or not show, these will be the 'choices' and 'selected' values
@@ -88,10 +86,10 @@ controls <-
                                    label    = NULL, 
                                    choices  = all_rows,
                                    selected = all_rows,
-                                   inline   = FALSE))) 
+                                   inline   = TRUE))) 
 
 ui <- fluidPage(
-  
+  tweaks,
   # setBackgroundColor(
   #   color = c("#000000", "#B6B6B6"),
   #   gradient = "linear",
@@ -335,104 +333,97 @@ ui <- fluidPage(
         hr(),
         fluidRow(
           column(4,
-                 p("Show all albums between"),
+                 h4("Number of Reviews"),
                  numericInput("all_albums_min_reviews",
-                              NULL,
+                              "Minimum Reviews",
                               value = 5,
                               min = 5
                  ),
-                 p("   and   "),
                  numericInput("all_albums_max_reviews",
-                              NULL,
+                              "Maximum Reviews",
                               value = 40,
                               min = 6,
                               max = 40
-                 ),
-                 p("   reviews")
-                 ),
-          column(4,
-                 p("from these subgenres: "),
-                 prettyCheckboxGroup("subgenres_checkbox",
-                                    NULL,
-                                    choices = early_genres,
-                                    selected = early_genres,
-                                    inline = FALSE)
+                 )
                  ),
           column(4,
-                 p("released between"),
+                 h4("Subgenres"),
+                 controls
+                 ),
+          column(4,
+                 h4("Release Year"),
                  numericInput("all_albums_min_year",
-                              NULL,
+                              "Minimum Year",
                               value = 1970,
                               min = 1970
                  ),
-                 p("   and   "),
                  numericInput("all_albums_max_year",
-                              NULL,
+                              "Maximum Year",
                               value = 2018,
                               min = 1971,
                               max = 2018
                  )
                  )
         ),
-        fluidRow(
-          column(4,
-                 splitLayout(
-                   p("Show all albums between"),
-                   numericInput("all_albums_min_reviews",
-                                NULL,
-                                value = 5,
-                                min = 5
-                                ),
-                   p("   and   "),
-                   numericInput("all_albums_max_reviews",
-                                NULL,
-                                value = 40,
-                                min = 6,
-                                max = 40
-                   ),
-                   p("   reviews"),
-                   cellWidths = c("170", "90", "35", "90", "110")
-                 )
-          ),
-          offset = 0.5,
-          br()
-        ),
-        fluidRow(
-          br(),
-          column(4,
-                 tweaks,
-                 controls,
-                 # splitLayout(p("from these subgenres: "),
-                 #             prettyCheckboxGroup("subgenres_checkbox",
-                 #                                NULL,
-                 #                                choices = early_genres,
-                 #                                selected = early_genres,
-                 #                                inline = FALSE),
-                 #             cellWidths = c("160", "600")
-                 # ),
-                 offset = 0.5
-          )
-        ),
-        fluidRow(
-          br(),
-          column(4,
-                 splitLayout(p("released between"),
-                             numericInput("all_albums_min_year",
-                                          NULL,
-                                          value = 1970,
-                                          min = 1970
-                             ),
-                             p("   and   "),
-                             numericInput("all_albums_max_year",
-                                          NULL,
-                                          value = 2018,
-                                          min = 1971,
-                                          max = 2018
-                             ),
-                             cellWidths = c("140", "100", "35", "100", "110")
-                             )
-                 )
-        ),
+        # fluidRow(
+        #   column(4,
+        #          splitLayout(
+        #            p("Show all albums between"),
+        #            numericInput("all_albums_min_reviews",
+        #                         NULL,
+        #                         value = 5,
+        #                         min = 5
+        #                         ),
+        #            p("   and   "),
+        #            numericInput("all_albums_max_reviews",
+        #                         NULL,
+        #                         value = 40,
+        #                         min = 6,
+        #                         max = 40
+        #            ),
+        #            p("   reviews"),
+        #            cellWidths = c("170", "90", "35", "90", "110")
+        #          )
+        #   ),
+        #   offset = 0.5,
+        #   br()
+        # ),
+        # fluidRow(
+        #   br(),
+        #   column(4,
+        #          tweaks,
+        #          controls,
+        #          # splitLayout(p("from these subgenres: "),
+        #          #             prettyCheckboxGroup("subgenres_checkbox",
+        #          #                                NULL,
+        #          #                                choices = early_genres,
+        #          #                                selected = early_genres,
+        #          #                                inline = FALSE),
+        #          #             cellWidths = c("160", "600")
+        #          # ),
+        #          offset = 0.5
+        #   )
+        # ),
+        # fluidRow(
+        #   br(),
+        #   column(4,
+        #          splitLayout(p("released between"),
+        #                      numericInput("all_albums_min_year",
+        #                                   NULL,
+        #                                   value = 1970,
+        #                                   min = 1970
+        #                      ),
+        #                      p("   and   "),
+        #                      numericInput("all_albums_max_year",
+        #                                   NULL,
+        #                                   value = 2018,
+        #                                   min = 1971,
+        #                                   max = 2018
+        #                      ),
+        #                      cellWidths = c("140", "100", "35", "100", "110")
+        #                      )
+        #          )
+        # ),
         fluidRow(
           plotlyOutput("plotly_ratings")
           
@@ -681,8 +672,8 @@ server <- function(input, output, session){
       rename(Year = release_year,
              Rating = Average.rating) 
     selected <- data %>%
-      ggplot(aes(x=Year, y=adj_rating)) +
-      geom_point(aes(#size = Number.of.reviews,
+      ggplot(aes(x=Year, y=Rating)) +
+      geom_point(aes(size = Number.of.reviews,
                      fill = genre_early_main,
                      text=sprintf("Band: %s
                                 Album: %s
@@ -701,7 +692,7 @@ server <- function(input, output, session){
       geom_line(alpha = 0.8
                 #data = df_one_genre() %>% filter(Band == input$band_select)
                 ) + 
-      scale_y_continuous(limits=c(0,1.00),  expand = c(0.01, 0.01)) + 
+      scale_y_continuous(limits=c(0,100),  expand = c(0.01, 0.01)) + 
       scale_x_continuous(breaks = pretty_breaks()) +
       theme(axis.title.x=element_blank(),
             panel.grid.major = element_blank(), 
