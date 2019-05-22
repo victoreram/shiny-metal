@@ -82,7 +82,7 @@ controls <-
   list(
        tags$div(align = 'left', 
                 class = 'multicol', 
-                prettyCheckboxGroup(inputId  = 'subgenres_checkbox', 
+                prettyCheckboxGroup(inputId  = 'all_albums_subgenres_checkbox', 
                                    label    = NULL, 
                                    choices  = all_rows,
                                    selected = all_rows,
@@ -315,17 +315,33 @@ ui <- fluidPage(
       #   
       # ),
       tabPanel(
-        "The Best and Worst Albums",
+        "The Albums",
         fluidRow(
           
-          h1("The Best and Worst Albums", align="center"),
+          h1("The Albums", align="center"),
           h5(em("'A lyric'"), align="center"),
           h5(em("- Band, Album, Year"), align="center"),
           hr(),
           column(
             11,
             p("Alas, not every album is universally praised and noticed by metalheads.",
-              "Metal has a vast underground."),
+              ""
+              ),
+            p("Want to check out the universal classics? The upper right corner has the best albums that metal has ever produced.",
+              "Go a bit lower and you'll see popular albums that received less critical praise.",
+              "Typically these are the middle of the road, less-inspired offerings from popular bands, to put it nicely.",
+              "Stray too far to the bottom, and you'll run into some of the most creatively bankrupt, what-the-hell-were-they-thinking-when-they-made-this albums of all time.",
+              "You have been warned."
+              ),
+            p("Looking for an underground-ish gem? Check out some albums on the upper left corner.",
+              "These albums received praise albeit from a few people.",
+              "Most albums live in the mid to lower left region. ",
+              "There's still plenty of good stuff here, mostly for people who can't get enough from a certain band or subgenre.",
+              "At the bottom, you'll see some probably but not necessarily bad albums.",
+              "Albums with fewer reviews are prone to fluctuations with their ratings.",
+              "One angry 0% review can overpower a few other reviewers who positively reviewed an otherwise good album.",
+              "Don't ignore some of the releases here as you may discover something you'd like."
+              ),
             offset=0.5
             
           )
@@ -531,8 +547,12 @@ server <- function(input, output, session){
   })
   
   all_albums_laid_out <- reactive({
-    df_min_5_reviews %>% filter(Number.of.reviews >= input$all_albums_min_reviews,
-                                Number.of.reviews <= input$all_albums_max_reviews)
+    df_min_5_reviews %>% 
+      filter(Number.of.reviews >= input$all_albums_min_reviews,
+             Number.of.reviews <= input$all_albums_max_reviews,
+             genre_early_main %in% input$all_albums_subgenres_checkbox,
+             release_year >= input$all_albums_min_year,
+             release_year <= input$all_albums_max_year)
     
   })
   output$plotly_ratings <- renderPlotly(
