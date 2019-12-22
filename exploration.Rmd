@@ -4,8 +4,9 @@ library(shiny)
 ```
 ```{r}
 df <- read.csv('Data/albums.csv', stringsAsFactors = F)
+df <- read.csv("Data/releases_with_ratings_20181221.csv", stringsAsFactors=F)
 df <- df %>% 
-  filter(Number.of.reviews >= 1, !str_detect(Band, '\\|')) # set a minimum of 1 review; no splits (splits are when Band = band_a | band_b)
+  filter(!str_detect(Band, '\\|')) # set a minimum of 1 review; no splits (splits are when Band = band_a | band_b)
 ```
 ```{r}
 # split the genres by early and later
@@ -85,6 +86,35 @@ df <- df %>% mutate(location_early = trimws(str_replace_all(Location,'\\(early.*
                                          str_detect(location_early, '\\/') ~ str_replace_all(location_early, '\\/.*', ''),
                                          TRUE ~ location_early)
 )
+
+df <- df %>% mutate(release_year = as.numeric(str_sub(Release.date, 1, 4)))
+df <- df %>% filter(!(genre_early_main %in% c("Rock", "Other")))
+
+df_year <- df %>% 
+  filter(!is.na(genre_early_main), 
+         genre_early_main != '', 
+         release_year >= 1970, 
+         release_year < 2019) %>%
+  group_by(release_year) %>% 
+  count(genre_early_main) %>%
+  mutate(percent = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(genre_early_main = fct_reorder(genre_early_main, release_year))
+
+df_year <- df_year %>% 
+  select(-n) %>%
+  tidyr::spread(key = genre_early_main, value = percent, fill = 0) %>%
+  tidyr::gather(key = genre_early_main, value = percent, - release_year) %>%
+  left_join(
+    df_year %>%
+      select(-percent) %>%
+      tidyr::spread(key = genre_early_main, value = n, fill = 0) %>%
+      tidyr::gather(key = genre_early_main, value = n, - release_year)
+  ) %>% 
+  mutate(description = glue("<strong>{genre_early_main}</strong> made up  <strong>{scales::percent(percent)}</strong> ({n} total)"))
+
+df_year %>% write.csv("Data/albums_summary.csv")
+
 ```
 
 ```{r}
